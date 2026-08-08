@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCIII v2 — 8-Bit Extended Field Language</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #f5f3ef;
+  --bg2:       #ece9e3;
+  --bg3:       #e4e0d9;
+  --border:    rgba(0,0,0,0.09);
+  --text:      rgba(0,0,0,0.88);
+  --text2:     rgba(0,0,0,0.44);
+  --text3:     rgba(0,0,0,0.20);
+  --teal:      #00E5CC;
+  --gold:      #C9A84C;
+  --violet:    #7B5EA7;
+  --red:       #E05A4E;
+  --canvas-bg: #efece6;
+  --grain-op:  0.055;
+}
+.dark {
+  --bg:        #0a0a0a;
+  --bg2:       #111111;
+  --bg3:       #161616;
+  --border:    rgba(255,255,255,0.07);
+  --text:      rgba(255,255,255,0.88);
+  --text2:     rgba(255,255,255,0.42);
+  --text3:     rgba(255,255,255,0.16);
+  --canvas-bg: #060606;
+  --grain-op:  0.08;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:'Rajdhani',sans-serif; background:var(--bg); color:var(--text); transition:background .25s,color .25s; }
+
+header {
+  position:fixed; top:0; left:0; right:0; z-index:200; height:44px;
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; padding:0 18px;
+}
+.logo { font-family:'Share Tech Mono',monospace; font-size:13px; letter-spacing:.14em; color:var(--text); }
+.logo em { color:var(--teal); font-style:normal; }
+.logo sup { color:var(--gold); font-size:9px; letter-spacing:.1em; vertical-align:super; }
+.hdr-center { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.18em; color:var(--text3); text-transform:uppercase; }
+.hdr-right { display:flex; align-items:center; gap:10px; }
+.hbtn { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:.07em; background:none; border:1px solid var(--border); color:var(--text2); padding:3px 9px; cursor:pointer; transition:color .15s, border-color .15s; }
+.hbtn:hover { color:var(--teal); border-color:var(--teal); }
+.hbtn.danger:hover { color:var(--red); border-color:var(--red); }
+.hbtn.active { color:var(--teal); border-color:var(--teal); background:rgba(0,229,204,.06); }
+.hbtn.gold { border-color:var(--gold); color:var(--gold); }
+
+.shell { position:fixed; top:44px; bottom:88px; left:0; right:0; display:flex; }
+
+aside {
+  width:260px; flex-shrink:0;
+  background:var(--bg2); border-right:1px solid var(--border);
+  overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column; transition:background .25s;
+}
+aside::-webkit-scrollbar { width:3px; }
+aside::-webkit-scrollbar-thumb { background:var(--border); }
+
+.sb-sec { padding:12px 14px 14px; border-bottom:1px solid var(--border); }
+.sb-lbl { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.20em; text-transform:uppercase; color:var(--text3); margin-bottom:9px; display:block; }
+
+.mode-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; }
+.mbtn { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.06em; padding:6px 2px; background:none; border:1px solid var(--border); color:var(--text2); cursor:pointer; text-align:center; transition:all .15s; line-height:1.3; }
+.mbtn:hover { border-color:var(--teal); color:var(--teal); }
+.mbtn.active { border-color:var(--teal); color:var(--teal); background:rgba(0,229,204,.06); }
+.mbtn.new-mode { border-color:var(--gold); color:var(--gold); }
+.mbtn.new-mode.active { background:rgba(201,168,76,.08); }
+.mbtn.new-mode:hover { background:rgba(201,168,76,.06); }
+
+.ctrl-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.ctrl-lbl { font-family:'Rajdhani',sans-serif; font-size:10px; font-weight:500; letter-spacing:.07em; color:var(--text2); text-transform:uppercase; }
+.ctrl-val { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--teal); min-width:44px; text-align:right; }
+input[type=range] { width:100%; -webkit-appearance:none; height:1px; background:var(--border); outline:none; margin-bottom:9px; cursor:pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:9px; height:9px; border-radius:50%; background:var(--teal); cursor:pointer; }
+
+.palette-grid { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+.pchip { font-family:'Share Tech Mono',monospace; font-size:13px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); cursor:pointer; color:var(--text2); transition:all .12s; user-select:none; position:relative; }
+.pchip:hover,.pchip.active { border-color:var(--gold); color:var(--gold); }
+.pchip.ext8 { border-color:rgba(201,168,76,0.35); }
+.pchip .ptip { display:none; position:absolute; bottom:calc(100% + 4px); left:50%; transform:translateX(-50%); font-family:'Share Tech Mono',monospace; font-size:8px; background:var(--bg3); border:1px solid var(--border); padding:2px 5px; color:var(--text2); white-space:nowrap; pointer-events:none; z-index:99; }
+.pchip:hover .ptip { display:block; }
+
+/* 8-bit slot indicator */
+.bit-meter { display:flex; gap:2px; margin-top:6px; flex-wrap:wrap; }
+.bit-cell { width:12px; height:12px; border:1px solid var(--border); font-family:'Share Tech Mono',monospace; font-size:7px; display:flex; align-items:center; justify-content:center; color:var(--text3); }
+.bit-cell.used7 { background:rgba(0,229,204,0.12); color:var(--teal); border-color:var(--teal); }
+.bit-cell.used8 { background:rgba(201,168,76,0.18); color:var(--gold); border-color:var(--gold); }
+
+.daf-grid { display:flex; flex-direction:column; gap:4px; }
+.daf-row { display:flex; justify-content:space-between; align-items:center; font-family:'Share Tech Mono',monospace; font-size:9px; }
+.daf-name { color:var(--text3); letter-spacing:.1em; }
+.daf-val { color:var(--teal); }
+.daf-bar-wrap { flex:1; margin:0 8px; height:2px; background:var(--border); }
+.daf-bar { height:2px; background:var(--teal); transition:width .3s; }
+.daf-bar.drift { background:var(--gold); }
+.daf-bar.trap { background:var(--violet); }
+.daf-bar.brittle { background:var(--red); }
+
+/* mojibake alert */
+.mojibake-alert { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.1em; padding:5px 8px; border:1px solid transparent; margin-top:6px; display:none; }
+.mojibake-alert.show { display:block; border-color:var(--violet); color:var(--violet); background:rgba(123,94,167,0.08); }
+
+.readout { font-family:'Share Tech Mono',monospace; font-size:9px; line-height:1.9; }
+.readout .rkey { color:var(--text3); display:inline-block; width:72px; }
+.readout .rval { color:var(--teal); }
+.readout .ralert { color:var(--red); }
+.readout .rgold { color:var(--gold); }
+
+.export-btn { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:.08em; width:100%; padding:7px 0; background:none; border:1px solid var(--border); color:var(--text2); cursor:pointer; margin-top:2px; transition:all .15s; }
+.export-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+main { flex:1; position:relative; overflow:hidden; background:var(--canvas-bg); transition:background .25s; display:flex; align-items:center; justify-content:center; }
+#grain-canvas { position:absolute; inset:0; pointer-events:none; opacity:var(--grain-op); z-index:1; }
+#asciii-output { font-family:'Share Tech Mono',monospace; font-size:12.5px; line-height:1.46; color:var(--text); white-space:pre; user-select:text; position:relative; z-index:2; padding:22px 28px; max-width:100%; max-height:100%; overflow:auto; transition:color .25s; }
+#asciii-output::-webkit-scrollbar { width:3px; height:3px; }
+#asciii-output::-webkit-scrollbar-thumb { background:var(--border); }
+
+.corner-tag { position:absolute; bottom:11px; right:14px; z-index:10; font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.1em; color:var(--text3); text-align:right; line-height:1.9; }
+.paused-badge { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:10; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.16em; color:var(--gold); border:1px solid var(--gold); padding:2px 10px; background:var(--bg2); display:none; }
+.paused-badge.show { display:block; }
+.version-badge { position:absolute; top:12px; right:14px; z-index:10; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.14em; color:var(--gold); border:1px solid rgba(201,168,76,0.4); padding:2px 8px; }
+
+.ticker-strip { position:fixed; bottom:0; left:0; right:0; height:88px; background:var(--bg2); border-top:1px solid var(--border); overflow:hidden; display:flex; align-items:center; transition:background .25s; }
+.ticker-track { display:flex; gap:0; animation:tickscroll 38s linear infinite; white-space:nowrap; }
+.ticker-track.paused { animation-play-state:paused; }
+@keyframes tickscroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.tk-item { display:flex; flex-direction:column; gap:3px; min-width:148px; padding:0 24px 0 0; }
+.tk-lbl { font-family:'Share Tech Mono',monospace; font-size:7.5px; letter-spacing:.18em; color:var(--text3); text-transform:uppercase; }
+.tk-val { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:24px; letter-spacing:.02em; color:var(--text); line-height:1; }
+.tk-sub { font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--teal); }
+.tk-sub.gold { color:var(--gold); }
+.tk-div { width:1px; height:52px; background:var(--border); flex-shrink:0; margin-right:24px; align-self:center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ASC<em>III</em><sup>8</sup> <span style="color:var(--text3);font-size:10px;margin-left:6px;">8-BIT EXTENDED FIELD</span></div>
+  <div class="hdr-center">UUON Foundation Inc. · UFM v0.3 · 8-Bit Extension · SAL-1.0</div>
+  <div class="hdr-right">
+    <button class="hbtn gold" id="btn-bitmap" onclick="toggleBitmap()">⬛ BITMAP</button>
+    <button class="hbtn" id="btn-pause" onclick="togglePause()">⏸ PAUSE</button>
+    <button class="hbtn danger" onclick="resetSim()">↺ RESET</button>
+    <button class="hbtn" onclick="toggleDark()">◐ INVERT</button>
+  </div>
+</header>
+
+<div class="shell">
+<aside>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Render Mode</span>
+    <div class="mode-grid">
+      <button class="mbtn active" onclick="setMode('field',this)">FIELD</button>
+      <button class="mbtn" onclick="setMode('topology',this)">TOPO</button>
+      <button class="mbtn" onclick="setMode('node',this)">NODE</button>
+      <button class="mbtn" onclick="setMode('sim',this)">SIM</button>
+      <button class="mbtn" onclick="setMode('compress',this)">COMPRESS</button>
+      <button class="mbtn" onclick="setMode('graph',this)">GRAPH</button>
+      <button class="mbtn new-mode" onclick="setMode('extended',this)">EXT-8</button>
+      <button class="mbtn new-mode" onclick="setMode('codepage',this)">CODEPAGE</button>
+      <button class="mbtn new-mode" onclick="setMode('mojibake',this)">MOJIBAKE</button>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">8-Bit Slot Usage</span>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);margin-bottom:6px;">
+      <span style="color:var(--teal);">█</span> 0–127 base (7-bit) &nbsp;
+      <span style="color:var(--gold);">█</span> 128–255 extended
+    </div>
+    <div class="bit-meter" id="bit-meter"></div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Field Parameters</span>
+    <div class="ctrl-row"><span class="ctrl-lbl">Density</span><span class="ctrl-val" id="v-density">0.62</span></div>
+    <input type="range" min="5" max="100" value="62" oninput="setParam('density',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Resolution</span><span class="ctrl-val" id="v-resolution">44</span></div>
+    <input type="range" min="16" max="80" value="44" oninput="setParam('resolution',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">Frequency</span><span class="ctrl-val" id="v-frequency">0.38</span></div>
+    <input type="range" min="5" max="95" value="38" oninput="setParam('frequency',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Tick Speed</span><span class="ctrl-val" id="v-speed">110ms</span></div>
+    <input type="range" min="30" max="700" value="110" oninput="setParam('speed',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">UFM Nodes</span><span class="ctrl-val" id="v-ufm">12</span></div>
+    <input type="range" min="4" max="32" value="12" oninput="setParam('ufmCount',parseInt(this.value));rebuildGraph()">
+    <div class="ctrl-row"><span class="ctrl-lbl" style="color:var(--gold)">Ext Depth</span><span class="ctrl-val" id="v-extdepth" style="color:var(--gold)">0.50</span></div>
+    <input type="range" min="0" max="100" value="50" oninput="setParam('extDepth',this.value/100)">
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Character Palette <span style="color:var(--gold);font-size:8px">· GOLD = 8-BIT EXTENDED</span></span>
+    <div class="palette-grid" id="palette-grid"></div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">DAF State Distribution</span>
+    <div class="daf-grid">
+      <div class="daf-row"><span class="daf-name">CIRC</span><div class="daf-bar-wrap"><div class="daf-bar" id="daf-circ" style="width:70%"></div></div><span class="daf-val" id="dv-circ">—</span></div>
+      <div class="daf-row"><span class="daf-name">DRIFT</span><div class="daf-bar-wrap"><div class="daf-bar drift" id="daf-drift" style="width:20%"></div></div><span class="daf-val" id="dv-drift">—</span></div>
+      <div class="daf-row"><span class="daf-name">TRAP</span><div class="daf-bar-wrap"><div class="daf-bar trap" id="daf-trap" style="width:7%"></div></div><span class="daf-val" id="dv-trap">—</span></div>
+      <div class="daf-row"><span class="daf-name">BRITTLE</span><div class="daf-bar-wrap"><div class="daf-bar brittle" id="daf-brit" style="width:3%"></div></div><span class="daf-val" id="dv-brit">—</span></div>
+    </div>
+    <div class="mojibake-alert" id="mojibake-alert">⚠ MOJIBAKE — TRAP NODE COLLISION</div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Live Readout</span>
+    <div class="readout">
+      <div><span class="rkey">tick    </span><span class="rval" id="r-tick">000000</span></div>
+      <div><span class="rkey">mode    </span><span class="rval" id="r-mode">FIELD</span></div>
+      <div><span class="rkey">palette </span><span class="rval" id="r-pal">DENSITY</span></div>
+      <div><span class="rkey">nodes   </span><span class="rval" id="r-nodes">—</span></div>
+      <div><span class="rkey">energy  </span><span class="rval" id="r-energy">—</span></div>
+      <div><span class="rkey">entropy </span><span class="rval" id="r-entropy">—</span></div>
+      <div><span class="rkey">compress</span><span class="rval" id="r-compress">—</span></div>
+      <div><span class="rkey">8-bit % </span><span class="rval rgold" id="r-8bit">—</span></div>
+      <div><span class="rkey">alert   </span><span class="rval ralert" id="r-alert">NONE</span></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Export</span>
+    <button class="export-btn" onclick="exportTXT()">↓ EXPORT .TXT FRAME</button>
+    <button class="export-btn" style="margin-top:5px" onclick="exportLog()">↓ EXPORT STATE LOG</button>
+  </div>
+
+</aside>
+
+<main>
+  <canvas id="grain-canvas"></canvas>
+  <pre id="asciii-output"></pre>
+  <div class="paused-badge" id="paused-badge">⏸ PAUSED</div>
+  <div class="version-badge">8-BIT · v2</div>
+  <div class="corner-tag">ASCIII v2 · 8-Bit Extended<br>Phillip Aguilar Ruiz III<br>UUON Foundation Inc.</div>
+</main>
+</div>
+
+<div class="ticker-strip">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════════════
+// ASCIII v2 — 8-BIT EXTENDED FIELD LANGUAGE
+// Adds 128 new character slots above 7-bit base, mirroring 8-bit ASCII
+// Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0
+// ═══════════════════════════════════════════════════════════════════════════
+
+const S = {
+  dark:false, paused:false, mode:'field', tick:0, lastFrame:0,
+  density:0.62, resolution:44, frequency:0.38, speed:110,
+  ufmCount:12, stateLog:[], extDepth:0.5, showBitmap:false,
+};
+
+// ── 7-BIT PALETTES (slots 0–127, backward compatible) ────────────────────
+const PALETTES_7 = {
+  density:  [' ','·','░','▒','▓','█'],
+  organic:  [' ','·',',',';','o','O','@'],
+  symbolic: [' ','·','◦','○','◎','●'],
+  topology: [' ','─','│','┼','╬','█'],
+  wave:     [' ','˙','~','≈','≋','▓'],
+  runic:    [' ','·','᛫','ᚐ','ᚒ','ᚔ'],
+  binary:   [' ','0','1','0','1','█'],
+  morse:    [' ','·','-','·','-','█'],
+};
+
+// ── 8-BIT EXTENDED PALETTES (slots 128–255, new layer) ───────────────────
+// These carry the UFM meta-state: energy level, system identity, cross-system info
+// Each palette maps the extended 128 slots with accented/symbolic/box chars
+const PALETTES_8 = {
+  western:  ['à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð','ñ','ò','ó','ô','õ','ö','ø','ù','ú','û','ü','ý','þ','ß'],
+  math:     ['±','×','÷','°','µ','²','³','¼','½','¾','∞','√','∑','∏','∫','≈','≠','≤','≥','∝','∂','∇','∀','∃','∈','∉','⊂','⊃','⊆','⊇','∅'],
+  box:      ['┌','─','┐','│','│','└','─','┘','├','┤','┬','┴','┼','╔','═','╗','║','║','╚','═','╝','╠','╣','╦','╩','╬','▀','▄','█','░','▒'],
+  arrows:   ['←','→','↑','↓','↔','↕','↖','↗','↘','↙','⇐','⇒','⇑','⇓','⇔','⇕','↺','↻','↼','⇀','↽','⇁','⇌','⇋','↯','⇝','⇜','↬','↫','↪','↩'],
+  greek:    ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ'],
+  alchemical:['🜁','🜂','🜃','🜄','🜅','🜆','🜇','🜈','🜉','🜊','🜋','🜌','🜍','🜎','🜏','🜐','🜑','🜒','🜓','🜔','🜕','🜖','🜗','🜘','🜙','🜚','🜛','🜜','🜝','🜞','🜟'],
+};
+
+const PAL_NAMES_7 = Object.keys(PALETTES_7);
+const PAL_NAMES_8 = Object.keys(PALETTES_8);
+let activePal7 = 'density';
+let activePal8 = 'math';
+
+// Active palette = 7-bit base + 8-bit extended layer
+function getPalette() {
+  return {
+    base: PALETTES_7[activePal7],
+    ext:  PALETTES_8[activePal8],
+  };
+}
+
+// ── UFM FIGURE — extended with 8-bit slot ────────────────────────────────
+const DAF = { CIRC:'CIRCULATING', DRIFT:'DRIFT', TRAP:'TRAP', BRIT:'BRITTLE' };
+
+class UFMFigure {
+  constructor(id, x, y) {
+    this.id = id;
+    this.P = { origin: id, birth: 0, anchor: { x, y }, system: 'base' };
+    this.E = { value: Math.random(), phase: Math.random()*Math.PI*2, age: 0 };
+    this.R = { edges: [], transfer: 0 };
+    this.C = { ratio: 0, symbol: ' ', extSymbol: ' ', daf: DAF.CIRC, slot: 0 };
+    this.x = x; this.y = y;
+  }
+
+  step(t) {
+    this.E.age++;
+    this.E.value = (Math.sin(t*0.018 + this.E.phase)*0.45 + 0.55)*S.density;
+    this.R.transfer = this.R.edges.reduce((acc,e)=>acc+Math.sin(t*0.013+e.phase)*e.weight*0.5, 0);
+    const conf = Math.abs(Math.sin(t*0.022 + this.E.phase));
+    if      (conf>0.72) this.C.daf = DAF.CIRC;
+    else if (conf>0.48) this.C.daf = DAF.DRIFT;
+    else if (conf>0.25) this.C.daf = DAF.TRAP;
+    else                this.C.daf = DAF.BRIT;
+    this.C.ratio = 1 - this.E.value;
+
+    // 7-bit slot (base character)
+    const base = PALETTES_7[activePal7];
+    const idx7 = Math.min(base.length-1, Math.floor(this.E.value*base.length));
+    this.C.symbol = base[idx7];
+
+    // 8-bit slot: determined by extDepth and meta-state
+    // energy > extDepth threshold → push into extended slot
+    const ext = PALETTES_8[activePal8];
+    if (this.E.value > S.extDepth) {
+      const idx8 = Math.min(ext.length-1, Math.floor((this.E.value-S.extDepth)/(1-S.extDepth)*ext.length));
+      this.C.extSymbol = ext[idx8];
+      this.C.slot = 128 + idx8; // 8-bit slot number
+    } else {
+      this.C.extSymbol = this.C.symbol; // falls back to base
+      this.C.slot = Math.floor(this.E.value * 127); // stays in 7-bit range
+    }
+  }
+}
+
+let GRAPH = { nodes:[], edges:[] };
+function rebuildGraph() {
+  const n = S.ufmCount, nodes=[], edges=[];
+  for(let i=0;i<n;i++){
+    const angle=(i/n)*Math.PI*2, r=0.35+(i%3)*0.1;
+    const x=0.5+Math.cos(angle)*r, y=0.5+Math.sin(angle)*r*0.55;
+    nodes.push(new UFMFigure(i,x,y));
+  }
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    const e={a:i,b:j,weight:0.5+Math.random()*0.5,phase:Math.random()*Math.PI*2};
+    edges.push(e); nodes[i].R.edges.push(e); nodes[j].R.edges.push(e);
+  }
+  for(let i=0;i<Math.floor(n/3);i++){
+    const a=Math.floor(Math.random()*n), b=Math.floor(Math.random()*n);
+    if(a!==b){const e={a,b,weight:0.3+Math.random()*0.4,phase:Math.random()*Math.PI*2};edges.push(e);nodes[a].R.edges.push(e);nodes[b].R.edges.push(e);}
+  }
+  GRAPH={nodes,edges};
+}
+rebuildGraph();
+
+function wave(x,y,t){const f=S.frequency;return(Math.sin(x*f+t*.71)*Math.cos(y*f*.83+t*.53)+Math.sin(x*f*1.31-y*f*.62+t*.29)*.5+Math.cos((x+y)*f*.47+t*.91)*.25)/1.75;}
+function charFor8(v){
+  // 8-bit aware charFor: high values push into extended palette
+  const pal=getPalette();
+  if(v>S.extDepth && pal.ext.length>0){
+    const norm=(v-S.extDepth)/(1-S.extDepth);
+    return pal.ext[Math.min(pal.ext.length-1,Math.floor(norm*pal.ext.length))];
+  }
+  const norm=Math.max(0,Math.min(1,(v+1)/2));
+  return pal.base[Math.min(pal.base.length-1,Math.floor(norm*pal.base.length))];
+}
+function charFor(v){const chars=PALETTES_7[activePal7];const norm=Math.max(0,Math.min(1,(v+1)/2));return chars[Math.min(chars.length-1,Math.floor(norm*chars.length))];}
+function bar(ratio,width,ch='█',bg='░'){const f=Math.round(ratio*width);return ch.repeat(f)+bg.repeat(width-f);}
+function pn(n,d=4){return String(n).padStart(d,'0');}
+
+function dafStats(){
+  const c={CIRCULATING:0,DRIFT:0,TRAP:0,BRITTLE:0};
+  GRAPH.nodes.forEach(n=>{c[n.C.daf]=(c[n.C.daf]||0)+1;});
+  const t=GRAPH.nodes.length||1;
+  return{circ:c.CIRCULATING/t,drift:c.DRIFT/t,trap:c.TRAP/t,brittle:c.BRITTLE/t};
+}
+
+function count8BitCells(){
+  let ext=0, total=0;
+  GRAPH.nodes.forEach(n=>{total++;if(n.C.slot>=128)ext++;});
+  return{ext,total,ratio:total>0?ext/total:0};
+}
+
+// ── RENDERERS ────────────────────────────────────────────────────────────
+
+function renderField(t){
+  const W=S.resolution,H=Math.max(8,Math.floor(W*0.42));
+  const lines=[],pal=getPalette();
+  let totalE=0,extCells=0,cellCount=W*H;
+  lines.push('ASCIII⁸·FIELD  t='+pn(t,6)+'  7-bit+8-bit  ext-depth='+S.extDepth.toFixed(2));
+  lines.push('F=(P,E,R,C)  ·  '+S.ufmCount+' UFM nodes  ·  pal='+activePal7.toUpperCase()+'/'+activePal8.toUpperCase());
+  lines.push('');
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const x=(col/W)*6.2832,y=(row/H)*6.2832;
+      let v=wave(x,y,t*0.014)*S.density;
+      GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<0.15)v+=nd.E.value*(1-dist/0.15)*0.4;});
+      v=Math.max(-1,Math.min(1,v));
+      totalE+=Math.abs(v);
+      const ch=charFor8(v);
+      // track extended slot usage
+      if(pal.ext.includes(ch)) extCells++;
+      line+=ch;
+    }
+    lines.push(line);
+  }
+  const energy=(totalE/cellCount).toFixed(5);
+  const entropy=(Math.log(cellCount+1)*S.density).toFixed(5);
+  const ext8pct=(extCells/cellCount*100).toFixed(1);
+  const daf=dafStats();
+  lines.push('');
+  lines.push('energy: '+energy+'  entropy: '+entropy+'  8-bit slots active: '+ext8pct+'%');
+  lines.push('7-bit base: '+(100-parseFloat(ext8pct)).toFixed(1)+'%  extended: '+ext8pct+'%');
+  lines.push('circ:'+( daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  trap:'+(daf.trap*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%');
+  updateReadout({nodes:cellCount,energy,entropy,compress:(1-parseFloat(energy)).toFixed(4),ext8:ext8pct+'%',alert:daf.brittle>0.2?'BRITTLE ZONE':'NONE'});
+  updateDAFBars(daf); updateBitMeter(extCells,cellCount);
+  return lines.join('\n');
+}
+
+function renderExtended(t){
+  // Renders the 8-bit extension layer explicitly:
+  // Left panel = 7-bit base field, Right panel = 8-bit extended overlay
+  const W=28,H=14;
+  const lines=[];
+  lines.push('ASCIII⁸·EXTENDED  t='+pn(t,6)+'  7-BIT vs 8-BIT LAYER');
+  lines.push('');
+  lines.push('  7-BIT BASE (0–127)'+' '.repeat(W-10)+'8-BIT EXTENDED (128–255)');
+  lines.push('  '+('─'.repeat(W))+'  '+('─'.repeat(W)));
+  for(let row=0;row<H;row++){
+    let left='',right='';
+    for(let col=0;col<W;col++){
+      const x=(col/W)*6.2832,y=(row/H)*6.2832;
+      let v=wave(x,y,t*0.014)*S.density;
+      GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);if(d<0.15)v+=nd.E.value*(1-d/0.15)*0.4;});
+      v=Math.max(-1,Math.min(1,v));
+      left+=charFor(v);  // base 7-bit always
+      right+=charFor8(v); // 8-bit — shows extended chars above threshold
+    }
+    lines.push('  │'+left+'│  │'+right+'│');
+  }
+  lines.push('  '+('─'.repeat(W))+'  '+('─'.repeat(W)));
+  lines.push('');
+  lines.push('  SLOT MAP: 7-bit → energy < '+S.extDepth.toFixed(2)+' → chars 0–127');
+  lines.push('            8-bit → energy ≥ '+S.extDepth.toFixed(2)+' → chars 128–255');
+  lines.push('');
+  lines.push('  Extended palette ['+activePal8.toUpperCase()+']: '+PALETTES_8[activePal8].slice(0,16).join(' ')+'…');
+  const daf=dafStats();
+  const ext8={ext:0,total:0};
+  GRAPH.nodes.forEach(n=>{ext8.total++;if(n.C.slot>=128)ext8.ext++;});
+  const extPct=(ext8.ext/Math.max(1,ext8.total)*100).toFixed(0);
+  lines.push('  UFM nodes in 8-bit slot: '+extPct+'%  ('+ext8.ext+'/'+ext8.total+')');
+  updateReadout({nodes:W*H+' ×2',energy:(daf.circ).toFixed(5),entropy:(Math.log(W*H)*S.density).toFixed(4),compress:(1-daf.circ).toFixed(4),ext8:extPct+'%',alert:parseFloat(extPct)>70?'HIGH EXT SATURATION':'NONE'});
+  updateDAFBars(daf);
+  return lines.join('\n');
+}
+
+function renderCodepage(t){
+  // Shows the 256-slot code page as a live field — each slot is a UFM position
+  const lines=[];
+  lines.push('ASCIII⁸·CODEPAGE  t='+pn(t,6)+'  256-SLOT MAP  (8-bit)');
+  lines.push('');
+  lines.push('  Slots 0–127 (7-bit base):');
+  const base=PALETTES_7[activePal7];
+  for(let row=0;row<4;row++){
+    let line='  ';
+    for(let col=0;col<32;col++){
+      const idx=row*32+col;
+      const e=Math.sin(t*0.014+idx*0.24)*0.5+0.5;
+      const ci=Math.min(base.length-1,Math.floor(e*base.length));
+      line+=(idx%8===0&&col>0?' ':'')+base[ci];
+    }
+    lines.push(line);
+  }
+  lines.push('');
+  lines.push('  Slots 128–255 (8-bit extended — '+activePal8.toUpperCase()+'):');
+  const ext=PALETTES_8[activePal8];
+  for(let row=0;row<4;row++){
+    let line='  ';
+    for(let col=0;col<32;col++){
+      const idx=row*32+col;
+      const e=Math.sin(t*0.016+idx*0.19+2.1)*0.5+0.5;
+      const ci=Math.min(ext.length-1,Math.floor(e*ext.length));
+      line+=(idx%8===0&&col>0?' ':'')+ext[ci];
+    }
+    lines.push(line);
+  }
+  lines.push('');
+  lines.push('  ─────────────────────────────────────');
+  lines.push('  total slots: 256  base: 128  extended: 128');
+  lines.push('  active extended palette: '+activePal8.toUpperCase());
+  lines.push('  extension threshold: '+S.extDepth.toFixed(3)+' (E.value cutoff)');
+  const daf=dafStats();
+  updateReadout({nodes:'256 slots',energy:(S.extDepth).toFixed(5),entropy:(Math.log(256)*S.density).toFixed(4),compress:(1-S.extDepth).toFixed(4),ext8:'50.0%',alert:'NONE'});
+  updateDAFBars(daf);
+  return lines.join('\n');
+}
+
+function renderMojibake(t){
+  // Mojibake mode: simulates encoding collision
+  // TRAP nodes produce ambiguous symbols — same code point, different meaning
+  const W=44,H=14,lines=[];
+  const daf=dafStats();
+  const trapNodes=GRAPH.nodes.filter(n=>n.C.daf===DAF.TRAP||n.C.daf===DAF.BRIT);
+  const mojibakeActive=trapNodes.length>0;
+
+  lines.push('ASCIII⁸·MOJIBAKE  t='+pn(t,6)+'  ENCODING COLLISION FIELD');
+  lines.push('TRAP nodes = unresolvable encoding — receiver cannot determine slot');
+  lines.push('');
+
+  // Two interpretations of same field: ISO-8859-1 vs Windows-1252 analog
+  const renderMojiField=(codepage,trapFlip)=>{
+    const rows=[];
+    for(let row=0;row<H;row++){
+      let line='';
+      for(let col=0;col<W;col++){
+        const x=(col/W)*6.2832,y=(row/H)*6.2832;
+        let v=wave(x,y,t*0.014)*S.density;
+        GRAPH.nodes.forEach(nd=>{
+          const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);
+          if(d<0.15){
+            if((nd.C.daf===DAF.TRAP||nd.C.daf===DAF.BRIT)&&trapFlip){
+              // TRAP node injects conflicting encoding
+              v-=nd.E.value*(1-d/0.15)*0.6;
+            } else {
+              v+=nd.E.value*(1-d/0.15)*0.4;
+            }
+          }
+        });
+        v=Math.max(-1,Math.min(1,v));
+        // codepage flip: TRAP regions render differently
+        if(v>0.5&&codepage===2){
+          const ext=PALETTES_8[activePal8];
+          line+=ext[Math.floor(Math.random()*ext.length)];
+        } else {
+          line+=charFor8(v);
+        }
+      }
+      rows.push(line);
+    }
+    return rows;
+  };
+
+  const cp1=renderMojiField(1,false);
+  const cp2=renderMojiField(2,true);
+
+  lines.push('  SENDER (code page A)'+' '.repeat(W-13)+'RECEIVER (code page B)');
+  for(let i=0;i<H;i++) lines.push('  │'+cp1[i]+'│  │'+cp2[i]+'│');
+  lines.push('');
+  lines.push('  TRAP nodes active: '+trapNodes.length+'  ·  Collision zones: '+(mojibakeActive?'YES — ENCODING AMBIGUOUS':'NONE'));
+  lines.push('');
+  lines.push('  ASCIII resolution: P-layer (provenance) makes encoding self-describing');
+  lines.push('  Every figure carries origin+system — no code page ambiguity possible');
+
+  const alert=mojibakeActive?'MOJIBAKE — TRAP COLLISION':'NONE';
+  document.getElementById('mojibake-alert').classList.toggle('show', mojibakeActive);
+  updateReadout({nodes:W*H+' ×2',energy:(daf.circ).toFixed(5),entropy:(daf.trap).toFixed(5),compress:(1-daf.trap).toFixed(4),ext8:(daf.trap*100).toFixed(1)+'%',alert});
+  updateDAFBars(daf);
+  return lines.join('\n');
+}
+
+// ── Inherited renderers from v1 (unchanged) ─────────────────────────────
+function renderTopology(t){
+  const W=64,H=26,G=Array.from({length:H},()=>Array(W).fill(' '));
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+  function putStr(s,col,row){for(let i=0;i<s.length;i++)put(s[i],col+i,row);}
+  function vline(col,r0,r1,ch='│'){for(let r=r0;r<=r1;r++)put(ch,col,r);}
+  function hline(row,c0,c1,ch='─'){for(let c=c0;c<=c1;c++)put(ch,c,row);}
+  const nodes=GRAPH.nodes;
+  GRAPH.edges.forEach(e=>{
+    const a=nodes[e.a],b=nodes[e.b];
+    const ax=Math.floor(a.x*(W-4)+1),ay=Math.floor(a.y*(H-3)+1);
+    const bx=Math.floor(b.x*(W-4)+1),by=Math.floor(b.y*(H-3)+1);
+    const w=(Math.sin(t*0.014+e.phase)*0.4+0.6);
+    const mx=Math.floor((ax+bx)/2);
+    hline(ay,Math.min(ax,mx),Math.max(ax,mx),w>0.7?'═':'─');
+    vline(mx,Math.min(ay,by),Math.max(ay,by),w>0.6?'║':'│');
+    hline(by,Math.min(mx,bx),Math.max(mx,bx),w>0.7?'═':'─');
+  });
+  nodes.forEach((nd,i)=>{
+    const col=Math.floor(nd.x*(W-8)+1),row=Math.floor(nd.y*(H-3)+1);
+    const sym=nd.C.daf===DAF.BRIT?'✕':nd.C.daf===DAF.TRAP?'◈':nd.C.daf===DAF.DRIFT?'◉':'◎';
+    putStr(sym+'N'+String(i).padStart(2,'0'),col,row);
+    putStr('E:'+nd.E.value.toFixed(2)+' S:'+nd.C.slot,col,row+1);
+  });
+  const daf=dafStats(),energy=(nodes.reduce((a,n)=>a+n.E.value,0)/nodes.length).toFixed(5);
+  const ext8=count8BitCells();
+  let out='ASCIII⁸·TOPOLOGY  t='+pn(t,6)+'  8-bit slots shown\n\n';
+  out+=G.map(r=>r.join('')).join('\n');
+  out+='\n\ncirc:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  trap:'+(daf.trap*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%  8-bit:'+(ext8.ratio*100).toFixed(0)+'%';
+  updateReadout({nodes:nodes.length+'n/'+GRAPH.edges.length+'e',energy,entropy:(Math.log(nodes.length+1)*S.density).toFixed(4),compress:(1-parseFloat(energy)).toFixed(4),ext8:(ext8.ratio*100).toFixed(1)+'%',alert:daf.brittle>0.15?'BRITTLE NODE ACTIVE':'NONE'});
+  updateDAFBars(daf);return out;
+}
+
+function renderNode(t){
+  const nd=GRAPH.nodes[0];if(!nd)return '— no nodes —';nd.step(t);
+  const base=PALETTES_7[activePal7],ext=PALETTES_8[activePal8];
+  const s0=base[5]||'●',s1=base[3]||'◎',s3=base[1]||'·';
+  const ringW=22,ringH=6,ringGrid=Array.from({length:ringH},()=>Array(ringW).fill(' '));
+  for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2+t*0.035,rx=Math.round(Math.cos(a)*8+10),ry=Math.round(Math.sin(a)*2.6+2.8);if(ry>=0&&ry<ringH&&rx>=0&&rx<ringW)ringGrid[ry][rx]=i===0?s0:(i%3===0?s1:s3);}
+  const ring=ringGrid.map(r=>r.join('')).join('\n   ');
+  const extSym=ext[Math.min(ext.length-1,Math.floor(nd.E.value*ext.length))];
+  const out=[
+    'ASCIII⁸·NODE  t='+pn(t,6)+'  8-BIT EXTENDED',
+    '','  ╔═══════════════════════════════════════╗',
+    '  ║  UFM FIGURE :: NODE-'+String(nd.id).padStart(3,'0')+'  [8-BIT]      ║',
+    '  ║  F = (P, E, R, C)  ·  slot='+String(nd.C.slot).padStart(3,'0')+'        ║',
+    '  ╚═══════════════════════════════════════╝','',
+    '  PROVENANCE','  ├─ origin : '+nd.P.origin,'  └─ anchor : ('+nd.P.anchor.x.toFixed(3)+', '+nd.P.anchor.y.toFixed(3)+')',
+    '','  ENERGY','  ├─ value  : '+nd.E.value.toFixed(5),'  └─ phase  : '+nd.E.phase.toFixed(5),
+    '','  C-LAYER (8-bit)','  ├─ 7-bit  : ['+nd.C.symbol+'] slot '+Math.min(127,nd.C.slot),
+    '  ├─ 8-bit  : ['+nd.C.extSymbol+'] slot '+nd.C.slot+' ('+activePal8.toUpperCase()+')',
+    '  ├─ ratio  : '+nd.C.ratio.toFixed(5),'  └─ DAF    : '+nd.C.daf,'',
+    '  ORBIT','   '+ring,'',
+    '  7-bit  '+bar(nd.E.value>S.extDepth?S.extDepth:nd.E.value,20,nd.C.symbol,'·')+' [0–127]',
+    '  8-bit  '+bar(nd.E.value>S.extDepth?(nd.E.value-S.extDepth)/(1-S.extDepth):0,20,extSym,'·')+' [128–255]',
+  ].join('\n');
+  updateReadout({nodes:1,energy:nd.E.value.toFixed(5),entropy:nd.C.ratio.toFixed(5),compress:nd.C.ratio.toFixed(5),ext8:nd.C.slot>=128?'YES':'NO',alert:nd.C.daf===DAF.BRIT?'BRITTLE':'NONE'});
+  updateDAFBars(dafStats());return out;
+}
+
+function renderSim(t){
+  const W=30,H=11;
+  const mini=(off)=>{const rows=[];for(let row=0;row<H;row++){let l='';for(let col=0;col<W;col++){const x=(col/W)*5.2,y=(row/H)*5.2;const v=wave(x,y,(t+off)*0.014)*S.density;l+=charFor8(v);}rows.push(l);}return rows;};
+  const past=mini(-50),now=mini(0),delta=past.map((p,i)=>{let d='';for(let c=0;c<W;c++)d+=(p[c]===now[i][c])?'·':now[i][c];return d;});
+  const daf=dafStats(),xfer=(Math.sin(t*0.019)*14).toFixed(1),pb=Math.floor(60+Math.sin(t*0.011)*18),pn2=Math.floor(60+Math.sin((t+50)*0.011)*18);
+  const lines=['ASCIII⁸·SIM  t='+pn(t,6)+'  8-BIT DUAL FIELD DELTA','','  t-50'+' '.repeat(W-4)+'·  t+0'+' '.repeat(W-4)+'·  DELTA',''];
+  for(let i=0;i<H;i++)lines.push('  │'+past[i]+'│  │'+now[i]+'│  │'+delta[i]+'│');
+  lines.push('','  xfer: '+xfer+'%','  old  '+bar(pb/100,18)+' '+pb+'%','  new  '+bar(pn2/100,18)+' '+pn2+'%');
+  lines.push('','  DAF  circ:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%');
+  updateReadout({nodes:W*H+' ×2',energy:((pb+pn2)/200).toFixed(5),entropy:(Math.log(W*H)*S.density).toFixed(4),compress:Math.abs(parseFloat(xfer)/100).toFixed(4),ext8:'—',alert:daf.brittle>0.15?'BRITTLE':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderCompress(t){
+  const W=S.resolution,H=Math.max(8,Math.floor(W*0.38)),cChars=[' ','·','░','▒','▓','█'];
+  const lines=['ASCIII⁸·COMPRESS  t='+pn(t,6),'C-layer: 8-bit compression map',''];
+  let totalR=0,cellCount=W*H;
+  for(let row=0;row<H;row++){let line='';for(let col=0;col<W;col++){let v=wave((col/W)*6.2832,(row/H)*6.2832,t*0.014)*S.density;GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);if(d<0.18)v+=nd.C.ratio*(1-d/0.18)*0.35;});v=Math.max(-1,Math.min(1,v));const c=1-Math.abs(v);totalR+=c;line+=cChars[Math.min(cChars.length-1,Math.floor(c*cChars.length))];}lines.push(line);}
+  const avg=(totalR/cellCount).toFixed(5),daf=dafStats();
+  lines.push('','avg compress: '+avg,'8-bit nodes: '+GRAPH.nodes.map(n=>'['+n.C.extSymbol+']').join(''));
+  updateReadout({nodes:cellCount,energy:(1-parseFloat(avg)).toFixed(5),entropy:(parseFloat(avg)*Math.log(cellCount+1)).toFixed(4),compress:avg,ext8:count8BitCells().ratio.toFixed(3),alert:parseFloat(avg)<0.3?'LOW COMPRESS':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderGraph(t){
+  GRAPH.nodes.forEach(n=>n.step(t));
+  const nodes=GRAPH.nodes,W=68,H=28,G=Array.from({length:H},()=>Array(W).fill(' '));
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+  function putStr(s,col,row){for(let i=0;i<s.length;i++)put(s[i],col+i,row);}
+  GRAPH.edges.forEach(e=>{
+    const a=nodes[e.a],b=nodes[e.b];
+    const ax=Math.floor(a.x*(W-8)+2),ay=Math.floor(a.y*(H-4)+1);
+    const bx=Math.floor(b.x*(W-8)+2),by=Math.floor(b.y*(H-4)+1);
+    const w=(Math.sin(t*0.014+e.phase)*0.4+0.6),ch=w>0.75?'▸':w>0.5?'→':w>0.25?'-':'·';
+    const mx=Math.floor((ax+bx)/2),my=Math.floor((ay+by)/2);
+    put(ch,mx,my);putStr(w.toFixed(1),mx+1,my);
+    for(let c=Math.min(ax,mx);c<=Math.max(ax,mx);c++)put(w>0.6?'─':'·',c,ay);
+    for(let c=Math.min(mx,bx);c<=Math.max(mx,bx);c++)put(w>0.6?'─':'·',c,by);
+    for(let r=Math.min(ay,by);r<=Math.max(ay,by);r++)put(w>0.6?'│':'·',mx,r);
+  });
+  nodes.forEach((nd,i)=>{
+    const col=Math.floor(nd.x*(W-8)+2),row=Math.floor(nd.y*(H-4)+1);
+    const sym=nd.C.daf===DAF.BRIT?'✕':nd.C.daf===DAF.TRAP?'◈':nd.C.daf===DAF.DRIFT?'◉':'◎';
+    putStr('['+sym+'N'+String(i).padStart(2,'0')+nd.C.extSymbol+']',col,row);
+    putStr('E:'+nd.E.value.toFixed(2)+' S:'+nd.C.slot,col,row+1);
+  });
+  const daf=dafStats(),energy=(nodes.reduce((a,n)=>a+n.E.value,0)/nodes.length).toFixed(5),ext8=count8BitCells();
+  let out='ASCIII⁸·GRAPH  t='+pn(t,6)+'  8-bit slot shown in node label\n\n';
+  out+=G.map(r=>r.join('')).join('\n');
+  out+='\n\ncirc:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%  8-bit:'+(ext8.ratio*100).toFixed(0)+'%  avg-E:'+energy;
+  updateReadout({nodes:nodes.length+'n/'+GRAPH.edges.length+'e',energy,entropy:(Math.log(nodes.length+1)*S.density).toFixed(4),compress:(1-parseFloat(energy)).toFixed(4),ext8:(ext8.ratio*100).toFixed(1)+'%',alert:daf.brittle>0.12?'BRITTLE NODE':'NONE'});
+  updateDAFBars(daf);return out;
+}
+
+// ── DISPATCH ────────────────────────────────────────────────────────────
+function renderFrame(t){
+  GRAPH.nodes.forEach(n=>n.step(t));
+  let out='';
+  switch(S.mode){
+    case 'field':    out=renderField(t);    break;
+    case 'topology': out=renderTopology(t); break;
+    case 'node':     out=renderNode(t);     break;
+    case 'sim':      out=renderSim(t);      break;
+    case 'compress': out=renderCompress(t); break;
+    case 'graph':    out=renderGraph(t);    break;
+    case 'extended': out=renderExtended(t); break;
+    case 'codepage': out=renderCodepage(t); break;
+    case 'mojibake': out=renderMojibake(t); break;
+  }
+  document.getElementById('asciii-output').textContent=out;
+  document.getElementById('r-tick').textContent=pn(t,6);
+  if(t%10===0){const daf=dafStats();S.stateLog.push({t,mode:S.mode,daf});if(S.stateLog.length>120)S.stateLog.shift();}
+  updateTicker(t);
+}
+
+// ── UI UPDATERS ─────────────────────────────────────────────────────────
+function updateReadout({nodes,energy,entropy,compress,ext8,alert}){
+  document.getElementById('r-nodes').textContent=nodes;
+  document.getElementById('r-energy').textContent=energy;
+  document.getElementById('r-entropy').textContent=entropy;
+  document.getElementById('r-compress').textContent=compress;
+  document.getElementById('r-8bit').textContent=ext8;
+  const al=document.getElementById('r-alert');
+  al.textContent=alert; al.className=alert==='NONE'?'rval':'rval ralert';
+}
+function updateDAFBars(daf){
+  document.getElementById('daf-circ').style.width=(daf.circ*100).toFixed(1)+'%';
+  document.getElementById('daf-drift').style.width=(daf.drift*100).toFixed(1)+'%';
+  document.getElementById('daf-trap').style.width=(daf.trap*100).toFixed(1)+'%';
+  document.getElementById('daf-brit').style.width=(daf.brittle*100).toFixed(1)+'%';
+  document.getElementById('dv-circ').textContent=(daf.circ*100).toFixed(0)+'%';
+  document.getElementById('dv-drift').textContent=(daf.drift*100).toFixed(0)+'%';
+  document.getElementById('dv-trap').textContent=(daf.trap*100).toFixed(0)+'%';
+  document.getElementById('dv-brit').textContent=(daf.brittle*100).toFixed(0)+'%';
+}
+function updateBitMeter(extCells,total){
+  const m=document.getElementById('bit-meter');
+  m.innerHTML='';
+  const slots=16;
+  for(let i=0;i<slots;i++){
+    const d=document.createElement('div');
+    d.className='bit-cell';
+    if(i<8){d.classList.add('used7');d.textContent=Math.floor(i/slots*128);}
+    else{d.classList.add('used8');d.textContent=128+Math.floor((i-8)/8*128);}
+    m.appendChild(d);
+  }
+}
+
+function buildTicker(){
+  const defs=[
+    {id:'tk-tick',lbl:'TICK',val:'000000',sub:'sim clock'},
+    {id:'tk-mode',lbl:'MODE',val:'FIELD',sub:'render mode'},
+    {id:'tk-nodes',lbl:'NODES',val:'—',sub:'UFM figures'},
+    {id:'tk-energy',lbl:'ENERGY',val:'—',sub:'field avg'},
+    {id:'tk-8bit',lbl:'8-BIT %',val:'—',sub:'extended slots',gold:true},
+    {id:'tk-ext',lbl:'EXT PAL',val:'MATH',sub:'128–255 layer',gold:true},
+    {id:'tk-daf',lbl:'DAF STATE',val:'CIRC',sub:'dominant'},
+    {id:'tk-pal',lbl:'7-BIT PAL',val:'DENSITY',sub:'base 0–127'},
+    {id:'tk-ufm',lbl:'UFM COUNT',val:'12',sub:'active nodes'},
+    {id:'tk-depth',lbl:'EXT DEPTH',val:'0.50',sub:'threshold',gold:true},
+    {id:'',lbl:'ASCIII',val:'v2',sub:'8-bit extended'},
+    {id:'',lbl:'LICENSE',val:'SAL-1.0',sub:'UUON Foundation'},
+  ];
+  const all=[...defs,...defs];
+  const track=document.getElementById('ticker-track');
+  track.innerHTML='';
+  all.forEach(d=>{
+    const div=document.createElement('div');div.className='tk-item';if(d.id)div.id=d.id;
+    div.innerHTML=`<div class="tk-lbl">${d.lbl}</div><div class="tk-val">${d.val}</div><div class="tk-sub${d.gold?' gold':''}">${d.sub}</div>`;
+    track.appendChild(div);
+    const dv=document.createElement('div');dv.className='tk-div';track.appendChild(dv);
+  });
+}
+function setTk(id,val){document.querySelectorAll('#'+id+' .tk-val').forEach(el=>el.textContent=val);}
+function updateTicker(t){
+  const ext8=count8BitCells();
+  const daf=dafStats();
+  const dom=daf.circ>=daf.drift&&daf.circ>=daf.trap&&daf.circ>=daf.brittle?'CIRC':daf.drift>=daf.trap&&daf.drift>=daf.brittle?'DRIFT':daf.trap>=daf.brittle?'TRAP':'BRIT';
+  setTk('tk-tick',pn(t,6));setTk('tk-mode',S.mode.toUpperCase());
+  setTk('tk-nodes',String(GRAPH.nodes.length));
+  setTk('tk-energy',document.getElementById('r-energy').textContent);
+  setTk('tk-8bit',(ext8.ratio*100).toFixed(1)+'%');
+  setTk('tk-ext',activePal8.toUpperCase());
+  setTk('tk-daf',dom);setTk('tk-pal',activePal7.toUpperCase());
+  setTk('tk-ufm',String(S.ufmCount));setTk('tk-depth',S.extDepth.toFixed(2));
+}
+
+function buildPaletteUI(){
+  const grid=document.getElementById('palette-grid');grid.innerHTML='';
+  // 7-bit palettes
+  const label7=document.createElement('div');
+  label7.style.cssText='width:100%;font-family:Share Tech Mono,monospace;font-size:7px;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin-bottom:4px;';
+  label7.textContent='BASE 0–127';grid.appendChild(label7);
+  PAL_NAMES_7.forEach(name=>{
+    const chars=PALETTES_7[name],chip=document.createElement('div');
+    chip.className='pchip'+(name===activePal7?' active':'');
+    chip.textContent=chars[Math.floor(chars.length*.6)]||'?';chip.title=name;
+    chip.innerHTML+='<span class="ptip">'+name.toUpperCase()+'</span>';
+    chip.onclick=()=>{activePal7=name;document.querySelectorAll('.pchip:not(.ext8)').forEach(c=>c.classList.remove('active'));chip.classList.add('active');document.getElementById('r-pal').textContent=name.toUpperCase();};
+    grid.appendChild(chip);
+  });
+  // 8-bit extended palettes
+  const label8=document.createElement('div');
+  label8.style.cssText='width:100%;font-family:Share Tech Mono,monospace;font-size:7px;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin:8px 0 4px;';
+  label8.textContent='EXTENDED 128–255';grid.appendChild(label8);
+  PAL_NAMES_8.forEach(name=>{
+    const chars=PALETTES_8[name],chip=document.createElement('div');
+    chip.className='pchip ext8'+(name===activePal8?' active':'');
+    chip.textContent=chars[Math.floor(chars.length*.3)]||'?';chip.title=name;
+    chip.innerHTML+='<span class="ptip">'+name.toUpperCase()+'</span>';
+    chip.onclick=()=>{activePal8=name;document.querySelectorAll('.pchip.ext8').forEach(c=>c.classList.remove('active'));chip.classList.add('active');};
+    grid.appendChild(chip);
+  });
+}
+
+let grainCanvas,grainCtx;
+function buildGrain(){grainCanvas=document.getElementById('grain-canvas');grainCtx=grainCanvas.getContext('2d');resizeGrain();window.addEventListener('resize',resizeGrain);}
+function resizeGrain(){const m=document.querySelector('main');grainCanvas.width=m.clientWidth;grainCanvas.height=m.clientHeight;paintGrain();}
+function paintGrain(){const w=grainCanvas.width,h=grainCanvas.height,id=grainCtx.createImageData(w,h),d=id.data;for(let i=0;i<d.length;i+=4){const v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}grainCtx.putImageData(id,0,0);}
+
+function setParam(key,val){S[key]=val;const el=document.getElementById('v-'+key);if(!el)return;if(key==='speed')el.textContent=val+'ms';else if(key==='resolution'||key==='ufmCount')el.textContent=val;else el.textContent=val.toFixed(2);}
+function setMode(m,btn){S.mode=m;document.querySelectorAll('.mbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('r-mode').textContent=m.toUpperCase();}
+function togglePause(){S.paused=!S.paused;const btn=document.getElementById('btn-pause');btn.textContent=S.paused?'▶ RESUME':'⏸ PAUSE';btn.classList.toggle('active',S.paused);document.getElementById('paused-badge').classList.toggle('show',S.paused);document.getElementById('ticker-track').classList.toggle('paused',S.paused);}
+function resetSim(){S.tick=0;S.stateLog=[];rebuildGraph();}
+function toggleDark(){S.dark=!S.dark;document.body.classList.toggle('dark',S.dark);setTimeout(paintGrain,50);}
+function toggleBitmap(){S.showBitmap=!S.showBitmap;document.getElementById('btn-bitmap').classList.toggle('active',S.showBitmap);}
+function exportTXT(){const text=document.getElementById('asciii-output').textContent;const blob=new Blob([text],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v2-frame-t'+pn(S.tick,6)+'.txt';a.click();URL.revokeObjectURL(url);}
+function exportLog(){const lines=S.stateLog.map(e=>`t=${pn(e.t,6)}  mode=${e.mode}  circ=${(e.daf.circ*100).toFixed(0)}%  drift=${(e.daf.drift*100).toFixed(0)}%  trap=${(e.daf.trap*100).toFixed(0)}%  brit=${(e.daf.brittle*100).toFixed(0)}%`);const blob=new Blob(['ASCIII v2 STATE LOG\nPhillip Aguilar Ruiz III / UUON Foundation Inc.\nSAL-1.0\n'+'─'.repeat(72)+'\n\n'+lines.join('\n')],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v2-log-t'+pn(S.tick,6)+'.txt';a.click();URL.revokeObjectURL(url);}
+
+function loop(ts){if(!S.paused&&ts-S.lastFrame>=S.speed){S.lastFrame=ts;S.tick++;renderFrame(S.tick);}requestAnimationFrame(loop);}
+
+buildPaletteUI();buildTicker();buildGrain();updateBitMeter(0,1);requestAnimationFrame(loop);
+</script>
+</body>
+</html>

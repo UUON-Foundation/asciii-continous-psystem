@@ -1,0 +1,28 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Mac
+.DS_Store
+**/.DS_Store
+
+# Core — proprietary engine logic is gitignored
+# The public API layer (api/lib/) is what ships
+# core/engine.js lives on Mac and is served from uuon.world
+core/engine.js
+
+# Zip artifacts
+*.zip
+
+# Build
+dist/
+build/
+
+# Logs
+logs/
+*.log

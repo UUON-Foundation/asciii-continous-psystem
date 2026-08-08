@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCIII v3 — Menger Volumetric Field</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f3ef; --bg2:#ece9e3; --bg3:#e4e0d9;
+  --border:rgba(0,0,0,0.09); --text:rgba(0,0,0,0.88);
+  --text2:rgba(0,0,0,0.44); --text3:rgba(0,0,0,0.20);
+  --teal:#00E5CC; --gold:#C9A84C; --violet:#7B5EA7; --red:#E05A4E;
+  --canvas-bg:#efece6; --grain-op:0.055;
+}
+.dark {
+  --bg:#0a0a0a; --bg2:#111111; --bg3:#161616;
+  --border:rgba(255,255,255,0.07); --text:rgba(255,255,255,0.88);
+  --text2:rgba(255,255,255,0.42); --text3:rgba(255,255,255,0.16);
+  --canvas-bg:#060606; --grain-op:0.08;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);transition:background .25s,color .25s;}
+header{position:fixed;top:0;left:0;right:0;z-index:200;height:44px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;}
+.logo{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.14em;color:var(--text);}
+.logo em{color:var(--teal);font-style:normal;}
+.logo sup{color:var(--violet);font-size:9px;vertical-align:super;}
+.hdr-center{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.hbtn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.07em;background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;cursor:pointer;transition:color .15s,border-color .15s;}
+.hbtn:hover{color:var(--teal);border-color:var(--teal);}
+.hbtn.danger:hover{color:var(--red);border-color:var(--red);}
+.hbtn.active{color:var(--teal);border-color:var(--teal);background:rgba(0,229,204,.06);}
+.hbtn.violet{border-color:var(--violet);color:var(--violet);}
+.shell{position:fixed;top:44px;bottom:88px;left:0;right:0;display:flex;}
+aside{width:268px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;transition:background .25s;}
+aside::-webkit-scrollbar{width:3px;}
+aside::-webkit-scrollbar-thumb{background:var(--border);}
+.sb-sec{padding:12px 14px 14px;border-bottom:1px solid var(--border);}
+.sb-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.20em;text-transform:uppercase;color:var(--text3);margin-bottom:9px;display:block;}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+.mbtn{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 2px;background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;line-height:1.3;}
+.mbtn:hover{border-color:var(--teal);color:var(--teal);}
+.mbtn.active{border-color:var(--teal);color:var(--teal);background:rgba(0,229,204,.06);}
+.mbtn.gold{border-color:rgba(201,168,76,.4);color:var(--gold);}
+.mbtn.gold.active{background:rgba(201,168,76,.08);}
+.mbtn.violet{border-color:rgba(123,94,167,.4);color:var(--violet);}
+.mbtn.violet.active{background:rgba(123,94,167,.08);}
+.ctrl-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ctrl-lbl{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:500;letter-spacing:.07em;color:var(--text2);text-transform:uppercase;}
+.ctrl-val{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--teal);min-width:44px;text-align:right;}
+.ctrl-val.gold{color:var(--gold);}
+.ctrl-val.violet{color:var(--violet);}
+input[type=range]{width:100%;-webkit-appearance:none;height:1px;background:var(--border);outline:none;margin-bottom:9px;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--teal);cursor:pointer;}
+.palette-grid{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.pchip{font-family:'Share Tech Mono',monospace;font-size:13px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);cursor:pointer;color:var(--text2);transition:all .12s;user-select:none;position:relative;}
+.pchip:hover,.pchip.active{border-color:var(--gold);color:var(--gold);}
+.pchip .ptip{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:8px;background:var(--bg3);border:1px solid var(--border);padding:2px 5px;color:var(--text2);white-space:nowrap;pointer-events:none;z-index:99;}
+.pchip:hover .ptip{display:block;}
+.daf-grid{display:flex;flex-direction:column;gap:4px;}
+.daf-row{display:flex;justify-content:space-between;align-items:center;font-family:'Share Tech Mono',monospace;font-size:9px;}
+.daf-name{color:var(--text3);letter-spacing:.1em;}
+.daf-val{color:var(--teal);}
+.daf-bar-wrap{flex:1;margin:0 8px;height:2px;background:var(--border);}
+.daf-bar{height:2px;background:var(--teal);transition:width .3s;}
+.daf-bar.drift{background:var(--gold);}
+.daf-bar.trap{background:var(--violet);}
+.daf-bar.brittle{background:var(--red);}
+/* menger depth display */
+.depth-indicator{display:flex;gap:3px;margin-top:6px;}
+.depth-cell{width:20px;height:20px;border:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:9px;display:flex;align-items:center;justify-content:center;color:var(--text3);cursor:pointer;transition:all .12s;}
+.depth-cell.active{border-color:var(--violet);color:var(--violet);background:rgba(123,94,167,.12);}
+.depth-cell:hover{border-color:var(--violet);}
+/* menger cell survival display */
+.survival-row{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);letter-spacing:.08em;margin-top:4px;}
+.survival-row span.v{color:var(--violet);}
+.survival-row span.t{color:var(--teal);}
+.readout{font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.9;}
+.readout .rkey{color:var(--text3);display:inline-block;width:72px;}
+.readout .rval{color:var(--teal);}
+.readout .ralert{color:var(--red);}
+.readout .rviolet{color:var(--violet);}
+.export-btn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;width:100%;padding:7px 0;background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;margin-top:2px;transition:all .15s;}
+.export-btn:hover{border-color:var(--gold);color:var(--gold);}
+main{flex:1;position:relative;overflow:hidden;background:var(--canvas-bg);transition:background .25s;display:flex;align-items:center;justify-content:center;}
+#grain-canvas{position:absolute;inset:0;pointer-events:none;opacity:var(--grain-op);z-index:1;}
+#asciii-output{font-family:'Share Tech Mono',monospace;font-size:12.5px;line-height:1.46;color:var(--text);white-space:pre;user-select:text;position:relative;z-index:2;padding:22px 28px;max-width:100%;max-height:100%;overflow:auto;transition:color .25s;}
+#asciii-output::-webkit-scrollbar{width:3px;height:3px;}
+#asciii-output::-webkit-scrollbar-thumb{background:var(--border);}
+.corner-tag{position:absolute;bottom:11px;right:14px;z-index:10;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--text3);text-align:right;line-height:1.9;}
+.paused-badge{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:10;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.16em;color:var(--gold);border:1px solid var(--gold);padding:2px 10px;background:var(--bg2);display:none;}
+.paused-badge.show{display:block;}
+.version-badge{position:absolute;top:12px;right:14px;z-index:10;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--violet);border:1px solid rgba(123,94,167,.4);padding:2px 8px;}
+.ticker-strip{position:fixed;bottom:0;left:0;right:0;height:88px;background:var(--bg2);border-top:1px solid var(--border);overflow:hidden;display:flex;align-items:center;transition:background .25s;}
+.ticker-track{display:flex;gap:0;animation:tickscroll 42s linear infinite;white-space:nowrap;}
+.ticker-track.paused{animation-play-state:paused;}
+@keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tk-item{display:flex;flex-direction:column;gap:3px;min-width:148px;padding:0 24px 0 0;}
+.tk-lbl{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;}
+.tk-val{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;letter-spacing:.02em;color:var(--text);line-height:1;}
+.tk-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--teal);}
+.tk-sub.violet{color:var(--violet);}
+.tk-sub.gold{color:var(--gold);}
+.tk-div{width:1px;height:52px;background:var(--border);flex-shrink:0;margin-right:24px;align-self:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ASC<em>III</em><sup>3D</sup> <span style="color:var(--text3);font-size:10px;margin-left:6px;">MENGER VOLUMETRIC FIELD</span></div>
+  <div class="hdr-center">UUON Foundation Inc. · UFM v0.4 · Hausdorff dim ≈ 2.727 · SAL-1.0</div>
+  <div class="hdr-right">
+    <button class="hbtn violet" id="btn-pause" onclick="togglePause()">⏸ PAUSE</button>
+    <button class="hbtn danger" onclick="resetSim()">↺ RESET</button>
+    <button class="hbtn" onclick="toggleDark()">◐ INVERT</button>
+  </div>
+</header>
+
+<div class="shell">
+<aside>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Render Mode — v1 · v2 · v3</span>
+    <div class="mode-grid">
+      <button class="mbtn active" onclick="setMode('field',this)">FIELD</button>
+      <button class="mbtn" onclick="setMode('topology',this)">TOPO</button>
+      <button class="mbtn" onclick="setMode('node',this)">NODE</button>
+      <button class="mbtn" onclick="setMode('sim',this)">SIM</button>
+      <button class="mbtn" onclick="setMode('compress',this)">COMPRESS</button>
+      <button class="mbtn" onclick="setMode('graph',this)">GRAPH</button>
+      <button class="mbtn gold" onclick="setMode('extended',this)">EXT-8</button>
+      <button class="mbtn gold" onclick="setMode('codepage',this)">CODEPAGE</button>
+      <button class="mbtn gold" onclick="setMode('mojibake',this)">MOJIBAKE</button>
+      <button class="mbtn violet" onclick="setMode('menger',this)">MENGER</button>
+      <button class="mbtn violet" onclick="setMode('volume',this)">VOLUME</button>
+      <button class="mbtn violet" onclick="setMode('traverse',this)">TRAVERSE</button>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Menger Depth (Z-Axis)</span>
+    <div class="depth-indicator" id="depth-indicator"></div>
+    <div class="survival-row">
+      surviving: <span class="v" id="surv-count">—</span> /
+      total: <span class="t" id="surv-total">—</span>
+      (<span class="v" id="surv-pct">—</span>%)
+    </div>
+    <div class="survival-row" style="margin-top:4px;">
+      void cells: <span style="color:var(--red)" id="void-count">—</span>
+      (BRITTLE-removed)
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Field Parameters</span>
+    <div class="ctrl-row"><span class="ctrl-lbl">Density</span><span class="ctrl-val" id="v-density">0.62</span></div>
+    <input type="range" min="5" max="100" value="62" oninput="setParam('density',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Resolution</span><span class="ctrl-val" id="v-resolution">44</span></div>
+    <input type="range" min="16" max="72" value="44" oninput="setParam('resolution',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">Frequency</span><span class="ctrl-val" id="v-frequency">0.38</span></div>
+    <input type="range" min="5" max="95" value="38" oninput="setParam('frequency',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Tick Speed</span><span class="ctrl-val" id="v-speed">120ms</span></div>
+    <input type="range" min="30" max="700" value="120" oninput="setParam('speed',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">UFM Nodes</span><span class="ctrl-val" id="v-ufm">12</span></div>
+    <input type="range" min="4" max="32" value="12" oninput="setParam('ufmCount',parseInt(this.value));rebuildGraph()">
+    <div class="ctrl-row"><span class="ctrl-lbl" style="color:var(--gold)">Ext Depth</span><span class="ctrl-val gold" id="v-extDepth">0.50</span></div>
+    <input type="range" min="0" max="100" value="50" oninput="setParam('extDepth',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl" style="color:var(--violet)">Menger Lvl</span><span class="ctrl-val violet" id="v-mengerLevel">2</span></div>
+    <input type="range" min="0" max="3" value="2" step="1" oninput="setParam('mengerLevel',parseInt(this.value));buildMenger()">
+    <div class="ctrl-row"><span class="ctrl-lbl" style="color:var(--violet)">Z Depth</span><span class="ctrl-val violet" id="v-zDepth">0</span></div>
+    <input type="range" min="0" max="3" value="0" step="1" oninput="setParam('zDepth',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl" style="color:var(--violet)">Rotate</span><span class="ctrl-val violet" id="v-mengerRot">0.00</span></div>
+    <input type="range" min="0" max="628" value="0" oninput="setParam('mengerRot',this.value/100)">
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Character Palette</span>
+    <div class="palette-grid" id="palette-grid"></div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">DAF State Distribution</span>
+    <div class="daf-grid">
+      <div class="daf-row"><span class="daf-name">CIRC</span><div class="daf-bar-wrap"><div class="daf-bar" id="daf-circ" style="width:70%"></div></div><span class="daf-val" id="dv-circ">—</span></div>
+      <div class="daf-row"><span class="daf-name">DRIFT</span><div class="daf-bar-wrap"><div class="daf-bar drift" id="daf-drift" style="width:20%"></div></div><span class="daf-val" id="dv-drift">—</span></div>
+      <div class="daf-row"><span class="daf-name">TRAP</span><div class="daf-bar-wrap"><div class="daf-bar trap" id="daf-trap" style="width:7%"></div></div><span class="daf-val" id="dv-trap">—</span></div>
+      <div class="daf-row"><span class="daf-name">BRITTLE</span><div class="daf-bar-wrap"><div class="daf-bar brittle" id="daf-brit" style="width:3%"></div></div><span class="daf-val" id="dv-brit">—</span></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Live Readout</span>
+    <div class="readout">
+      <div><span class="rkey">tick    </span><span class="rval" id="r-tick">000000</span></div>
+      <div><span class="rkey">mode    </span><span class="rval" id="r-mode">FIELD</span></div>
+      <div><span class="rkey">nodes   </span><span class="rval" id="r-nodes">—</span></div>
+      <div><span class="rkey">energy  </span><span class="rval" id="r-energy">—</span></div>
+      <div><span class="rkey">entropy </span><span class="rval" id="r-entropy">—</span></div>
+      <div><span class="rkey">compress</span><span class="rval" id="r-compress">—</span></div>
+      <div><span class="rkey">dim     </span><span class="rval rviolet" id="r-dim">2.727</span></div>
+      <div><span class="rkey">cells   </span><span class="rval rviolet" id="r-cells">—</span></div>
+      <div><span class="rkey">alert   </span><span class="rval ralert" id="r-alert">NONE</span></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Export</span>
+    <button class="export-btn" onclick="exportTXT()">↓ EXPORT .TXT FRAME</button>
+    <button class="export-btn" style="margin-top:5px" onclick="exportLog()">↓ EXPORT STATE LOG</button>
+    <button class="export-btn" style="margin-top:5px;border-color:rgba(123,94,167,.4);color:var(--violet)" onclick="exportMengerMap()">↓ EXPORT MENGER MAP</button>
+  </div>
+
+</aside>
+
+<main>
+  <canvas id="grain-canvas"></canvas>
+  <pre id="asciii-output"></pre>
+  <div class="paused-badge" id="paused-badge">⏸ PAUSED</div>
+  <div class="version-badge">3D · v3 · dim≈2.727</div>
+  <div class="corner-tag">ASCIII v3 · Menger Volumetric<br>Phillip Aguilar Ruiz III<br>UUON Foundation Inc.</div>
+</main>
+</div>
+
+<div class="ticker-strip">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════════════
+// ASCIII v3 — MENGER VOLUMETRIC FIELD LANGUAGE
+// Contains all v1 (7-bit UFM field) + v2 (8-bit extended) + v3 (Menger 3D)
+// Hausdorff dimension log(20)/log(3) ≈ 2.727
+// Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0
+// ═══════════════════════════════════════════════════════════════════════════
+
+const S = {
+  dark:false, paused:false, mode:'field', tick:0, lastFrame:0,
+  density:0.62, resolution:44, frequency:0.38, speed:120,
+  ufmCount:12, stateLog:[], extDepth:0.5,
+  mengerLevel:2, zDepth:0, mengerRot:0,
+};
+
+// ── PALETTES — v1 (7-bit) + v2 (8-bit ext) ──────────────────────────────
+const PAL7 = {
+  density:[' ','·','░','▒','▓','█'], organic:[' ','·',',',';','o','O','@'],
+  symbolic:[' ','·','◦','○','◎','●'], topology:[' ','─','│','┼','╬','█'],
+  wave:[' ','˙','~','≈','≋','▓'],    runic:[' ','·','᛫','ᚐ','ᚒ','ᚔ'],
+  binary:[' ','0','1','0','1','█'],   morse:[' ','·','-','·','-','█'],
+};
+const PAL8 = {
+  western:['à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð','ñ','ò','ó','ô','õ','ö','ø','ù','ú','û','ü','ý','þ','ß'],
+  math:['±','×','÷','°','µ','²','³','¼','½','¾','∞','√','∑','∏','∫','≈','≠','≤','≥','∝','∂','∇','∀','∃','∈','∉','⊂','⊃','⊆','⊇','∅'],
+  box:['┌','─','┐','│','│','└','─','┘','├','┤','┬','┴','┼','╔','═','╗','║','║','╚','═','╝','╠','╣','╦','╩','╬','▀','▄','█','░','▒'],
+  greek:['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ'],
+  arrows:['←','→','↑','↓','↔','↕','↖','↗','↘','↙','⇐','⇒','⇑','⇓','⇔','⇕','↺','↻','↼','⇀','↽','⇁','⇌','⇋','↯','⇝','⇜','↬','↫','↪','↩'],
+};
+const PAL_NAMES_7=Object.keys(PAL7), PAL_NAMES_8=Object.keys(PAL8);
+let activePal7='density', activePal8='math';
+
+// ── MENGER SPONGE GEOMETRY ───────────────────────────────────────────────
+// The Menger sponge determines which (x,y,z) cells EXIST.
+// Void cells = BRITTLE-removed figures = structured absence.
+// Hausdorff dimension = log(20)/log(3) ≈ 2.727
+
+const MENGER_DIM = Math.log(20)/Math.log(3); // 2.7268...
+
+// Check if a cell (ix,iy,iz) in [0,3^level)^3 is in the Menger sponge
+function inMenger(ix,iy,iz,level){
+  if(level===0) return true;
+  // At each 3×3×3 subdivision: remove center and 6 face-centers
+  // A cell is void if at any level, its (x%3, y%3, z%3) has 2+ coordinates == 1
+  let x=ix,y=iy,z=iz;
+  for(let l=0;l<level;l++){
+    const rx=x%3, ry=y%3, rz=z%3;
+    const mid=(rx===1?1:0)+(ry===1?1:0)+(rz===1?1:0);
+    if(mid>=2) return false; // void — this is the 3×3×3 removal rule
+    x=Math.floor(x/3); y=Math.floor(y/3); z=Math.floor(z/3);
+  }
+  return true;
+}
+
+// Build the Menger coordinate set at given recursion level
+// Returns array of {x,y,z} in [0,1]^3 for surviving cells
+let MENGER_CELLS = [];
+let MENGER_VOID = [];
+
+function buildMenger(){
+  const level = S.mengerLevel;
+  const gridSize = Math.pow(3,level);
+  const cells=[], voids=[];
+  // Sample a manageable subset at high levels
+  const step = level>=3 ? 3 : 1;
+  for(let iz=0;iz<gridSize;iz+=step){
+    for(let iy=0;iy<gridSize;iy+=step){
+      for(let ix=0;ix<gridSize;ix+=step){
+        const exists=inMenger(ix,iy,iz,level);
+        const cell={x:ix/gridSize,y:iy/gridSize,z:iz/gridSize,ix,iy,iz};
+        if(exists) cells.push(cell);
+        else voids.push(cell);
+      }
+    }
+  }
+  MENGER_CELLS=cells; MENGER_VOID=voids;
+  updateDepthUI();
+  updateSurvivalDisplay();
+  return{cells,voids};
+}
+
+function updateSurvivalDisplay(){
+  const surv=MENGER_CELLS.length, total=MENGER_CELLS.length+MENGER_VOID.length;
+  const pct=total>0?(surv/total*100).toFixed(1):0;
+  document.getElementById('surv-count').textContent=surv.toLocaleString();
+  document.getElementById('surv-total').textContent=total.toLocaleString();
+  document.getElementById('surv-pct').textContent=pct;
+  document.getElementById('void-count').textContent=MENGER_VOID.length.toLocaleString();
+  document.getElementById('r-cells').textContent=surv+'/'+total;
+}
+
+function updateDepthUI(){
+  const container=document.getElementById('depth-indicator');
+  container.innerHTML='';
+  const maxDepth=Math.pow(3,S.mengerLevel);
+  const steps=Math.min(6,maxDepth);
+  for(let d=0;d<steps;d++){
+    const cell=document.createElement('div');
+    cell.className='depth-cell'+(d===S.zDepth?' active':'');
+    cell.textContent=d;
+    cell.onclick=(()=>{const dd=d;return()=>{S.zDepth=dd;updateDepthUI();document.getElementById('v-zDepth').textContent=dd;}})();
+    container.appendChild(cell);
+  }
+}
+
+// ── UFM FIGURE — v3 with 3D anchor ──────────────────────────────────────
+const DAF={CIRC:'CIRCULATING',DRIFT:'DRIFT',TRAP:'TRAP',BRIT:'BRITTLE'};
+
+class UFMFigure{
+  constructor(id,x,y,z=0){
+    this.id=id;
+    this.P={origin:id,birth:0,anchor:{x,y,z},system:'base'};
+    this.E={value:Math.random(),phase:Math.random()*Math.PI*2,age:0};
+    this.R={edges:[],transfer:0};
+    this.C={ratio:0,symbol:' ',extSymbol:' ',daf:DAF.CIRC,slot:0};
+    this.x=x;this.y=y;this.z=z||0;
+    this.mengerExists=true; // set by Menger check
+  }
+  step(t){
+    this.E.age++;
+    this.E.value=(Math.sin(t*0.018+this.E.phase)*0.45+0.55)*S.density;
+    this.R.transfer=this.R.edges.reduce((acc,e)=>acc+Math.sin(t*0.013+e.phase)*e.weight*0.5,0);
+    const conf=Math.abs(Math.sin(t*0.022+this.E.phase));
+    if(conf>0.72)this.C.daf=DAF.CIRC;
+    else if(conf>0.48)this.C.daf=DAF.DRIFT;
+    else if(conf>0.25)this.C.daf=DAF.TRAP;
+    else this.C.daf=DAF.BRIT;
+    this.C.ratio=1-this.E.value;
+    const base=PAL7[activePal7];
+    this.C.symbol=base[Math.min(base.length-1,Math.floor(this.E.value*base.length))];
+    const ext=PAL8[activePal8];
+    if(this.E.value>S.extDepth){
+      const idx8=Math.min(ext.length-1,Math.floor((this.E.value-S.extDepth)/(1-S.extDepth)*ext.length));
+      this.C.extSymbol=ext[idx8]; this.C.slot=128+idx8;
+    } else {
+      this.C.extSymbol=this.C.symbol; this.C.slot=Math.floor(this.E.value*127);
+    }
+  }
+}
+
+let GRAPH={nodes:[],edges:[]};
+function rebuildGraph(){
+  const n=S.ufmCount,nodes=[],edges=[];
+  for(let i=0;i<n;i++){
+    const angle=(i/n)*Math.PI*2,r=0.35+(i%3)*0.1;
+    const x=0.5+Math.cos(angle)*r,y=0.5+Math.sin(angle)*r*0.55;
+    // z-position: distribute nodes across depth layers
+    const z=((i%4)/4);
+    nodes.push(new UFMFigure(i,x,y,z));
+  }
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    const e={a:i,b:j,weight:0.5+Math.random()*0.5,phase:Math.random()*Math.PI*2};
+    edges.push(e);nodes[i].R.edges.push(e);nodes[j].R.edges.push(e);
+  }
+  for(let i=0;i<Math.floor(n/3);i++){
+    const a=Math.floor(Math.random()*n),b=Math.floor(Math.random()*n);
+    if(a!==b){const e={a,b,weight:0.3+Math.random()*0.4,phase:Math.random()*Math.PI*2};edges.push(e);nodes[a].R.edges.push(e);nodes[b].R.edges.push(e);}
+  }
+  GRAPH={nodes,edges};
+}
+rebuildGraph();buildMenger();
+
+function wave(x,y,t,z=0){
+  const f=S.frequency;
+  return(
+    Math.sin(x*f+t*.71+z*.53)*Math.cos(y*f*.83+t*.53+z*.41)+
+    Math.sin(x*f*1.31-y*f*.62+t*.29+z*.37)*.5+
+    Math.cos((x+y)*f*.47+t*.91+z*.29)*.25
+  )/1.75;
+}
+function charFor(v){const c=PAL7[activePal7];const n=Math.max(0,Math.min(1,(v+1)/2));return c[Math.min(c.length-1,Math.floor(n*c.length))];}
+function charFor8(v){const pal=PAL7[activePal7],ext=PAL8[activePal8];if(v>S.extDepth&&ext.length>0){const n=(v-S.extDepth)/(1-S.extDepth);return ext[Math.min(ext.length-1,Math.floor(n*ext.length))];}const n=Math.max(0,Math.min(1,(v+1)/2));return pal[Math.min(pal.length-1,Math.floor(n*pal.length))];}
+function bar(r,w,ch='█',bg='░'){const f=Math.round(r*w);return ch.repeat(f)+bg.repeat(w-f);}
+function pn(n,d=4){return String(n).padStart(d,'0');}
+function dafStats(){const c={CIRCULATING:0,DRIFT:0,TRAP:0,BRITTLE:0};GRAPH.nodes.forEach(n=>{c[n.C.daf]=(c[n.C.daf]||0)+1;});const t=GRAPH.nodes.length||1;return{circ:c.CIRCULATING/t,drift:c.DRIFT/t,trap:c.TRAP/t,brittle:c.BRITTLE/t};}
+
+// ══════════════════════════════════════════════════════════════════════════
+// V3 MENGER RENDERERS
+// ══════════════════════════════════════════════════════════════════════════
+
+/* MENGER — 2D face-plane slice at current zDepth */
+function renderMenger(t){
+  const level=S.mengerLevel;
+  const gridSize=Math.pow(3,level);
+  // Render a face-plane slice at z=zDepth (normalized)
+  const zSlice=S.zDepth/Math.max(1,gridSize-1);
+  const W=Math.min(S.resolution, 48);
+  const H=Math.floor(W*0.45);
+  const lines=[];
+
+  lines.push('ASCIII³·MENGER  t='+pn(t,6)+'  level='+level+'  z='+S.zDepth+'/'+gridSize);
+  lines.push('Hausdorff dim = log(20)/log(3) ≈ '+MENGER_DIM.toFixed(5));
+  lines.push('F=(P,E,R,C)  ·  surviving cells determine field existence');
+  lines.push('');
+
+  let survCount=0,totalCount=0;
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      // Map (col,row) → Menger grid coordinates at this z-level
+      const ix=Math.floor((col/W)*gridSize);
+      const iy=Math.floor((row/H)*gridSize);
+      const iz=S.zDepth;
+      totalCount++;
+      if(inMenger(ix,iy,iz,level)){
+        // Surviving cell: evaluate UFM field at (x,y,z)
+        survCount++;
+        let v=wave(col/W*6.2832, row/H*6.2832, t*0.014, zSlice*3.14);
+        GRAPH.nodes.forEach(nd=>{
+          const dx=(col/W)-nd.x,dy=(row/H)-nd.y,dz=zSlice-nd.z;
+          const dist=Math.sqrt(dx*dx+dy*dy+dz*dz*0.5);
+          if(dist<0.18)v+=nd.E.value*(1-dist/0.18)*0.4;
+        });
+        v=Math.max(-1,Math.min(1,v));
+        line+=charFor8(v);
+      } else {
+        // Void cell: BRITTLE-removed, structured absence
+        line+=' ';
+      }
+    }
+    lines.push(line);
+  }
+  lines.push('');
+  const survPct=(survCount/totalCount*100).toFixed(1);
+  lines.push('surviving: '+survCount+'/'+totalCount+' cells  ('+survPct+'%)  void: '+(totalCount-survCount));
+  lines.push('theoretical 3^'+level+' grid = '+Math.pow(gridSize,2)+' face cells  ·  20^'+level+' survivors = '+Math.pow(20,level).toLocaleString());
+  lines.push('dim: '+MENGER_DIM.toFixed(5)+'  ·  z-slice: '+S.zDepth+'  ·  '+activePal7.toUpperCase()+'/'+activePal8.toUpperCase());
+
+  const daf=dafStats();
+  const energy=(GRAPH.nodes.reduce((a,n)=>a+n.E.value,0)/GRAPH.nodes.length).toFixed(5);
+  updateReadout({nodes:survCount+'/'+totalCount,energy,entropy:(survPct/100*Math.log(totalCount+1)).toFixed(4),compress:((1-survCount/totalCount)).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:survCount+'/'+totalCount,alert:daf.brittle>0.2?'BRITTLE ZONE':'NONE'});
+  updateDAFBars(daf);
+  return lines.join('\n');
+}
+
+/* VOLUME — isometric projection of 3D Menger field */
+function renderVolume(t){
+  const level=S.mengerLevel;
+  const gridSize=Math.pow(3,level);
+  const step=Math.max(1,Math.floor(gridSize/8)); // sample step for display
+  const W=60,H=28;
+  const G=Array.from({length:H},()=>Array(W).fill(' '));
+
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+
+  // Isometric projection: (x,y,z) → screen (col,row)
+  // ISO: col = (x-z)*cos30, row = (x+z)*sin30 - y
+  const angle=S.mengerRot;
+  function project(x,y,z){
+    // rotate in XZ plane
+    const rx=x*Math.cos(angle)-z*Math.sin(angle);
+    const rz=x*Math.sin(angle)+z*Math.cos(angle);
+    const screenX=Math.floor((rx-rz)*0.5*W*0.3 + W*0.5);
+    const screenY=Math.floor(((rx+rz)*0.25 - y*0.5)*H*0.5 + H*0.5);
+    return{col:screenX,row:screenY};
+  }
+
+  // Sample Menger cells for projection (back to front for painter's algo)
+  const cells=[];
+  for(let iz=0;iz<gridSize;iz+=step){
+    for(let iy=0;iy<gridSize;iy+=step){
+      for(let ix=0;ix<gridSize;ix+=step){
+        if(inMenger(ix,iy,iz,level)){
+          const fx=ix/gridSize,fy=iy/gridSize,fz=iz/gridSize;
+          let v=wave(fx*6.28,fy*6.28,t*0.012,fz*3.14);
+          GRAPH.nodes.forEach(nd=>{
+            const dx=fx-nd.x,dy=fy-nd.y,dz=fz-nd.z;
+            const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+            if(d<0.25)v+=nd.E.value*(1-d/0.25)*0.3;
+          });
+          v=Math.max(-1,Math.min(1,v));
+          cells.push({fx,fy,fz,v,depth:fx+fy+fz});
+        }
+      }
+    }
+  }
+  // Sort back to front
+  cells.sort((a,b)=>a.depth-b.depth);
+
+  cells.forEach(cell=>{
+    const ch=charFor8(cell.v);
+    const p=project(cell.fx,cell.fy,cell.fz);
+    put(ch,p.col,p.row);
+  });
+
+  const daf=dafStats();
+  const energy=(GRAPH.nodes.reduce((a,n)=>a+n.E.value,0)/GRAPH.nodes.length).toFixed(5);
+  let out='ASCIII³·VOLUME  t='+pn(t,6)+'  ISO PROJECTION  level='+level+'  rot='+S.mengerRot.toFixed(2)+'\n';
+  out+='dim='+MENGER_DIM.toFixed(4)+'  cells='+cells.length+'  pal='+activePal7.toUpperCase()+'/'+activePal8.toUpperCase()+'\n\n';
+  out+=G.map(r=>r.join('')).join('\n');
+  out+='\n\ncirc:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%  ·  surviving: '+cells.length+' cells visible';
+
+  updateReadout({nodes:cells.length+' visible',energy,entropy:(Math.log(cells.length+1)*S.density).toFixed(4),compress:((1-cells.length/Math.max(1,MENGER_CELLS.length))).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:cells.length.toString(),alert:daf.brittle>0.15?'BRITTLE ZONE':'NONE'});
+  updateDAFBars(daf);
+  return out;
+}
+
+/* TRAVERSE — walk through Z layers showing field evolution */
+function renderTraverse(t){
+  const level=S.mengerLevel;
+  const gridSize=Math.pow(3,level);
+  const layers=Math.min(4,gridSize);
+  const W=32,H=8;
+  const lines=[];
+
+  lines.push('ASCIII³·TRAVERSE  t='+pn(t,6)+'  Z-AXIS WALK  level='+level);
+  lines.push('Each layer = one depth slice through Menger coordinate system');
+  lines.push('Void structure visible across layers — same voids at all depths');
+  lines.push('');
+
+  for(let layer=0;layer<layers;layer++){
+    const zNorm=layer/(gridSize-1||1);
+    const zLabel='z='+layer+'/'+gridSize;
+    lines.push('  ┌─'+zLabel+'─'+'─'.repeat(Math.max(0,W-zLabel.length-2))+'┐');
+    for(let row=0;row<H;row++){
+      let line='  │';
+      for(let col=0;col<W;col++){
+        const ix=Math.floor((col/W)*gridSize);
+        const iy=Math.floor((row/H)*gridSize);
+        if(inMenger(ix,iy,layer,level)){
+          let v=wave(col/W*6.28,row/H*6.28,(t+layer*80)*0.012,zNorm*3.14);
+          GRAPH.nodes.forEach(nd=>{
+            const dx=(col/W)-nd.x,dy=(row/H)-nd.y,dz=zNorm-nd.z;
+            const d=Math.sqrt(dx*dx+dy*dy+dz*dz*0.3);
+            if(d<0.2)v+=nd.E.value*(1-d/0.2)*0.35;
+          });
+          v=Math.max(-1,Math.min(1,v));
+          line+=charFor8(v);
+        } else {
+          line+=' ';
+        }
+      }
+      lines.push(line+'│');
+    }
+    lines.push('  └'+'─'.repeat(W+1)+'┘');
+    lines.push('');
+  }
+
+  lines.push('  dim = log(20)/log(3) = '+MENGER_DIM.toFixed(7));
+  lines.push('  Z-axis = recursion level  ·  void = BRITTLE-removed structure');
+  lines.push('  Each face plane is an independent ASCIII FIELD slice');
+
+  const daf=dafStats();
+  const energy=(GRAPH.nodes.reduce((a,n)=>a+n.E.value,0)/GRAPH.nodes.length).toFixed(5);
+  updateReadout({nodes:W*H*layers+'cells',energy,entropy:(Math.log(W*H)*S.density).toFixed(4),compress:(1-parseFloat(energy)).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:(W*H*layers).toString(),alert:daf.brittle>0.2?'BRITTLE':'NONE'});
+  updateDAFBars(daf);
+  return lines.join('\n');
+}
+
+// ── INHERITED RENDERERS — v1 ─────────────────────────────────────────────
+function renderField(t){
+  const W=S.resolution,H=Math.max(8,Math.floor(W*0.42));
+  const lines=[]; let totalE=0,cellCount=W*H;
+  lines.push('ASCIII³·FIELD  t='+pn(t,6)+'  res='+W+'×'+H+'  dim='+MENGER_DIM.toFixed(3));
+  lines.push('F=(P,E,R,C)  ·  '+S.ufmCount+' UFM nodes  ·  '+activePal7.toUpperCase());
+  lines.push('');
+  for(let row=0;row<H;row++){let line='';for(let col=0;col<W;col++){const x=(col/W)*6.2832,y=(row/H)*6.2832;let v=wave(x,y,t*0.014,S.zDepth*.5);GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);if(d<0.15)v+=nd.E.value*(1-d/0.15)*0.4;});v=Math.max(-1,Math.min(1,v));totalE+=Math.abs(v);line+=charFor(v);}lines.push(line);}
+  const energy=(totalE/cellCount).toFixed(5),entropy=(Math.log(cellCount+1)*S.density).toFixed(5);
+  const daf=dafStats();
+  lines.push('');lines.push('energy: '+energy+'  entropy: '+entropy);
+  lines.push('circ:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  trap:'+(daf.trap*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%');
+  updateReadout({nodes:cellCount,energy,entropy,compress:(1-parseFloat(energy)).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:cellCount.toString(),alert:daf.brittle>0.2?'BRITTLE ZONE':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderTopology(t){
+  const W=64,H=26,G=Array.from({length:H},()=>Array(W).fill(' '));
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+  function putStr(s,col,row){for(let i=0;i<s.length;i++)put(s[i],col+i,row);}
+  function vline(col,r0,r1,ch='│'){for(let r=r0;r<=r1;r++)put(ch,col,r);}
+  function hline(row,c0,c1,ch='─'){for(let c=c0;c<=c1;c++)put(ch,c,row);}
+  const nodes=GRAPH.nodes;
+  GRAPH.edges.forEach(e=>{const a=nodes[e.a],b=nodes[e.b];const ax=Math.floor(a.x*(W-4)+1),ay=Math.floor(a.y*(H-3)+1),bx=Math.floor(b.x*(W-4)+1),by=Math.floor(b.y*(H-3)+1);const w=(Math.sin(t*0.014+e.phase)*0.4+0.6);const mx=Math.floor((ax+bx)/2);hline(ay,Math.min(ax,mx),Math.max(ax,mx),w>0.7?'═':'─');vline(mx,Math.min(ay,by),Math.max(ay,by),w>0.6?'║':'│');hline(by,Math.min(mx,bx),Math.max(mx,bx),w>0.7?'═':'─');});
+  nodes.forEach((nd,i)=>{const col=Math.floor(nd.x*(W-8)+1),row=Math.floor(nd.y*(H-3)+1);const sym=nd.C.daf===DAF.BRIT?'✕':nd.C.daf===DAF.TRAP?'◈':nd.C.daf===DAF.DRIFT?'◉':'◎';putStr(sym+'N'+String(i).padStart(2,'0'),col,row);putStr('E:'+nd.E.value.toFixed(2)+' z:'+nd.z.toFixed(2),col,row+1);});
+  const daf=dafStats(),energy=(nodes.reduce((a,n)=>a+n.E.value,0)/nodes.length).toFixed(5);
+  let out='ASCIII³·TOPOLOGY  t='+pn(t,6)+'  nodes show z-depth\n\n';
+  out+=G.map(r=>r.join('')).join('\n');
+  out+='\n\ncirc:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%  dim:'+MENGER_DIM.toFixed(3);
+  updateReadout({nodes:nodes.length+'n/'+GRAPH.edges.length+'e',energy,entropy:(Math.log(nodes.length+1)*S.density).toFixed(4),compress:(1-parseFloat(energy)).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:nodes.length.toString(),alert:daf.brittle>0.15?'BRITTLE NODE':'NONE'});
+  updateDAFBars(daf);return out;
+}
+
+function renderNode(t){
+  const nd=GRAPH.nodes[0];if(!nd)return '—';nd.step(t);
+  const base=PAL7[activePal7],ext=PAL8[activePal8];
+  const s0=base[5]||'●',s1=base[3]||'◎',s3=base[1]||'·';
+  const ringW=22,ringH=6,rg=Array.from({length:ringH},()=>Array(ringW).fill(' '));
+  for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2+t*0.035,rx=Math.round(Math.cos(a)*8+10),ry=Math.round(Math.sin(a)*2.6+2.8);if(ry>=0&&ry<ringH&&rx>=0&&rx<ringW)rg[ry][rx]=i===0?s0:(i%3===0?s1:s3);}
+  const ring=rg.map(r=>r.join('')).join('\n   ');
+  const extSym=ext[Math.min(ext.length-1,Math.floor(nd.E.value*ext.length))];
+  const mengerAt=inMenger(Math.floor(nd.x*9),Math.floor(nd.y*9),Math.floor(nd.z*9),S.mengerLevel)?'EXISTS':'VOID';
+  const out=[
+    'ASCIII³·NODE  t='+pn(t,6)+'  v3 FULL',
+    '','  ╔═════════════════════════════════════════╗',
+    '  ║  UFM FIGURE :: NODE-'+String(nd.id).padStart(3,'0')+'  3D-ANCHORED    ║',
+    '  ║  F = (P, E, R, C)                      ║',
+    '  ╚═════════════════════════════════════════╝',
+    '','  PROVENANCE (3D anchor)',
+    '  ├─ origin : '+nd.P.origin,
+    '  ├─ anchor : ('+nd.P.anchor.x.toFixed(3)+', '+nd.P.anchor.y.toFixed(3)+', '+nd.z.toFixed(3)+')',
+    '  └─ menger : '+mengerAt+' at level '+S.mengerLevel,
+    '','  ENERGY','  ├─ value : '+nd.E.value.toFixed(5),
+    '  └─ phase : '+nd.E.phase.toFixed(5),
+    '','  C-LAYER',
+    '  ├─ 7-bit : ['+nd.C.symbol+'] slot '+Math.min(127,nd.C.slot),
+    '  ├─ 8-bit : ['+nd.C.extSymbol+'] slot '+nd.C.slot,
+    '  ├─ ratio : '+nd.C.ratio.toFixed(5),
+    '  └─ DAF   : '+nd.C.daf,
+    '','  ORBIT','   '+ring,'',
+    '  7-bit  '+bar(Math.min(1,nd.E.value/S.extDepth||1),20,nd.C.symbol,'·'),
+    '  8-bit  '+bar(nd.E.value>S.extDepth?(nd.E.value-S.extDepth)/(1-S.extDepth):0,20,extSym,'·'),
+    '  menger '+bar(mengerAt==='EXISTS'?1:0,20,'█','░')+' '+mengerAt,
+  ].join('\n');
+  updateReadout({nodes:1,energy:nd.E.value.toFixed(5),entropy:nd.C.ratio.toFixed(5),compress:nd.C.ratio.toFixed(5),dim:MENGER_DIM.toFixed(3),cells:mengerAt,alert:nd.C.daf===DAF.BRIT?'BRITTLE':'NONE'});
+  updateDAFBars(dafStats());return out;
+}
+
+function renderSim(t){
+  const W=28,H=10,mini=(off,zoff)=>{const rows=[];for(let row=0;row<H;row++){let l='';for(let col=0;col<W;col++){const x=(col/W)*5.2,y=(row/H)*5.2,v=wave(x,y,(t+off)*0.014,(S.zDepth+zoff)*.5)*S.density;l+=charFor(v);}rows.push(l);}return rows;};
+  const past=mini(-50,0),now=mini(0,0),zdelta=mini(0,1);
+  const daf=dafStats(),xfer=(Math.sin(t*0.019)*14).toFixed(1);
+  const lines=['ASCIII³·SIM  t='+pn(t,6)+'  t-Δ · t+0 · z+1','','  t-50'+' '.repeat(W-4)+'·  t+0'+' '.repeat(W-4)+'·  z+1',''];
+  for(let i=0;i<H;i++)lines.push('  │'+past[i]+'│  │'+now[i]+'│  │'+zdelta[i]+'│');
+  lines.push('','  xfer: '+xfer+'%  ·  z comparison: z='+S.zDepth+' vs z='+(S.zDepth+1));
+  const energy=((daf.circ+daf.drift)/2).toFixed(5);
+  updateReadout({nodes:W*H+'×3',energy,entropy:(Math.log(W*H)*S.density).toFixed(4),compress:Math.abs(parseFloat(xfer)/100).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:(W*H*3).toString(),alert:daf.brittle>0.15?'BRITTLE':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderCompress(t){
+  const W=S.resolution,H=Math.max(8,Math.floor(W*0.38)),cChars=[' ','·','░','▒','▓','█'];
+  const lines=['ASCIII³·COMPRESS  t='+pn(t,6)+'  Menger level='+S.mengerLevel,''];
+  let totalR=0,cellCount=0;
+  const gridSize=Math.pow(3,S.mengerLevel);
+  for(let row=0;row<H;row++){let line='';for(let col=0;col<W;col++){const ix=Math.floor((col/W)*gridSize),iy=Math.floor((row/H)*gridSize);if(inMenger(ix,iy,S.zDepth,S.mengerLevel)){let v=wave((col/W)*6.2832,(row/H)*6.2832,t*0.014,S.zDepth*.5)*S.density;GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);if(d<0.18)v+=nd.C.ratio*(1-d/0.18)*0.35;});v=Math.max(-1,Math.min(1,v));const c=1-Math.abs(v);totalR+=c;cellCount++;line+=cChars[Math.min(cChars.length-1,Math.floor(c*cChars.length))];}else{line+=' ';}}lines.push(line);}
+  const avg=cellCount>0?(totalR/cellCount).toFixed(5):'0.00000',daf=dafStats();
+  lines.push('','avg compress: '+avg+'  ·  menger surviving cells drive compress map');
+  updateReadout({nodes:cellCount+'cells',energy:(1-parseFloat(avg)).toFixed(5),entropy:(parseFloat(avg)*Math.log(cellCount+1)).toFixed(4),compress:avg,dim:MENGER_DIM.toFixed(3),cells:cellCount.toString(),alert:parseFloat(avg)<0.3?'LOW COMPRESS':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderExtended(t){
+  const W=26,H=12,lines=['ASCIII³·EXT-8  t='+pn(t,6)+'  7-BIT vs 8-BIT  (z='+S.zDepth+')',''];
+  lines.push('  7-BIT BASE'+' '.repeat(W-5)+'8-BIT EXTENDED');
+  for(let row=0;row<H;row++){let l='',r='';for(let col=0;col<W;col++){const x=(col/W)*6.28,y=(row/H)*6.28,v=wave(x,y,t*0.014,S.zDepth*.5)*S.density;l+=charFor(v);r+=charFor8(v);}lines.push('  │'+l+'│  │'+r+'│');}
+  lines.push('','  ext palette ['+activePal8.toUpperCase()+']: '+PAL8[activePal8].slice(0,12).join(' ')+'…');
+  const daf=dafStats();updateReadout({nodes:W*H+'×2',energy:(daf.circ).toFixed(5),entropy:(Math.log(W*H)*S.density).toFixed(4),compress:(1-daf.circ).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:(W*H).toString(),alert:'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderCodepage(t){
+  const base=PAL7[activePal7],ext=PAL8[activePal8];
+  const lines=['ASCIII³·CODEPAGE  t='+pn(t,6)+'  256 SLOT MAP',''];
+  lines.push('  0–127 (7-bit base):');
+  for(let row=0;row<4;row++){let l='  ';for(let col=0;col<32;col++){const idx=row*32+col,e=Math.sin(t*0.014+idx*.24)*.5+.5,ci=Math.min(base.length-1,Math.floor(e*base.length));l+=(idx%8===0&&col>0?' ':'')+base[ci];}lines.push(l);}
+  lines.push('','  128–255 ('+activePal8.toUpperCase()+'):');
+  for(let row=0;row<4;row++){let l='  ';for(let col=0;col<32;col++){const idx=row*32+col,e=Math.sin(t*0.016+idx*.19+2.1)*.5+.5,ci=Math.min(ext.length-1,Math.floor(e*ext.length));l+=(idx%8===0&&col>0?' ':'')+ext[ci];}lines.push(l);}
+  lines.push('','  menger level: '+S.mengerLevel+'  surviving cells: '+MENGER_CELLS.length+'  dim: '+MENGER_DIM.toFixed(4));
+  const daf=dafStats();updateReadout({nodes:'256 slots',energy:S.extDepth.toFixed(5),entropy:(Math.log(256)*S.density).toFixed(4),compress:(1-S.extDepth).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:'256',alert:'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderMojibake(t){
+  const W=40,H=12,daf=dafStats();
+  const trapNodes=GRAPH.nodes.filter(n=>n.C.daf===DAF.TRAP||n.C.daf===DAF.BRIT);
+  const mini=(flip)=>{const rows=[];for(let row=0;row<H;row++){let l='';for(let col=0;col<W;col++){const x=(col/W)*6.28,y=(row/H)*6.28;let v=wave(x,y,t*0.014,S.zDepth*.5)*S.density;GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);if(d<0.15){if((nd.C.daf===DAF.TRAP||nd.C.daf===DAF.BRIT)&&flip)v-=nd.E.value*(1-d/0.15)*.6;else v+=nd.E.value*(1-d/0.15)*.4;}});v=Math.max(-1,Math.min(1,v));if(v>0.5&&flip){const ext=PAL8[activePal8];l+=ext[Math.floor(Math.random()*ext.length)];}else l+=charFor8(v);}rows.push(l);}return rows;};
+  const cp1=mini(false),cp2=mini(true);
+  const lines=['ASCIII³·MOJIBAKE  t='+pn(t,6)+'  TRAP NODE ENCODING COLLISION','','  SENDER (code page A)'+' '.repeat(W-12)+'RECEIVER (code page B)'];
+  for(let i=0;i<H;i++)lines.push('  │'+cp1[i]+'│  │'+cp2[i]+'│');
+  lines.push('','  TRAP nodes: '+trapNodes.length+'  ·  P-layer resolves collision (provenance = self-describing)');
+  updateReadout({nodes:W*H+'×2',energy:(daf.circ).toFixed(5),entropy:(daf.trap).toFixed(5),compress:(1-daf.trap).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:(W*H).toString(),alert:trapNodes.length>0?'MOJIBAKE ACTIVE':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderGraph(t){
+  GRAPH.nodes.forEach(n=>n.step(t));
+  const nodes=GRAPH.nodes,W=64,H=26,G=Array.from({length:H},()=>Array(W).fill(' '));
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+  function putStr(s,col,row){for(let i=0;i<s.length;i++)put(s[i],col+i,row);}
+  GRAPH.edges.forEach(e=>{const a=nodes[e.a],b=nodes[e.b];const ax=Math.floor(a.x*(W-8)+2),ay=Math.floor(a.y*(H-4)+1),bx=Math.floor(b.x*(W-8)+2),by=Math.floor(b.y*(H-4)+1);const w=(Math.sin(t*0.014+e.phase)*0.4+0.6),ch=w>0.75?'▸':w>0.5?'→':w>0.25?'-':'·';const mx=Math.floor((ax+bx)/2),my=Math.floor((ay+by)/2);put(ch,mx,my);putStr(w.toFixed(1),mx+1,my);for(let c=Math.min(ax,mx);c<=Math.max(ax,mx);c++)put(w>0.6?'─':'·',c,ay);for(let c=Math.min(mx,bx);c<=Math.max(mx,bx);c++)put(w>0.6?'─':'·',c,by);for(let r=Math.min(ay,by);r<=Math.max(ay,by);r++)put(w>0.6?'│':'·',mx,r);});
+  nodes.forEach((nd,i)=>{const col=Math.floor(nd.x*(W-8)+2),row=Math.floor(nd.y*(H-4)+1);const sym=nd.C.daf===DAF.BRIT?'✕':nd.C.daf===DAF.TRAP?'◈':nd.C.daf===DAF.DRIFT?'◉':'◎';const mng=inMenger(Math.floor(nd.x*9),Math.floor(nd.y*9),S.zDepth,S.mengerLevel)?'●':'○';putStr('['+sym+mng+'N'+String(i).padStart(2,'0')+']',col,row);putStr('E:'+nd.E.value.toFixed(2)+' z:'+nd.z.toFixed(1),col,row+1);});
+  const daf=dafStats(),energy=(nodes.reduce((a,n)=>a+n.E.value,0)/nodes.length).toFixed(5);
+  let out='ASCIII³·GRAPH  t='+pn(t,6)+'  ●=menger-exists  ○=void\n\n';
+  out+=G.map(r=>r.join('')).join('\n');
+  out+='\n\ncirc:'+(daf.circ*100).toFixed(0)+'%  drift:'+(daf.drift*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%  dim:'+MENGER_DIM.toFixed(3)+'  energy:'+energy;
+  updateReadout({nodes:nodes.length+'n/'+GRAPH.edges.length+'e',energy,entropy:(Math.log(nodes.length+1)*S.density).toFixed(4),compress:(1-parseFloat(energy)).toFixed(4),dim:MENGER_DIM.toFixed(3),cells:nodes.length.toString(),alert:daf.brittle>0.12?'BRITTLE':'NONE'});
+  updateDAFBars(daf);return out;
+}
+
+// ── DISPATCH ─────────────────────────────────────────────────────────────
+function renderFrame(t){
+  GRAPH.nodes.forEach(n=>n.step(t));
+  let out='';
+  switch(S.mode){
+    case 'field':    out=renderField(t);    break;
+    case 'topology': out=renderTopology(t); break;
+    case 'node':     out=renderNode(t);     break;
+    case 'sim':      out=renderSim(t);      break;
+    case 'compress': out=renderCompress(t); break;
+    case 'graph':    out=renderGraph(t);    break;
+    case 'extended': out=renderExtended(t); break;
+    case 'codepage': out=renderCodepage(t); break;
+    case 'mojibake': out=renderMojibake(t); break;
+    case 'menger':   out=renderMenger(t);   break;
+    case 'volume':   out=renderVolume(t);   break;
+    case 'traverse': out=renderTraverse(t); break;
+  }
+  document.getElementById('asciii-output').textContent=out;
+  document.getElementById('r-tick').textContent=pn(t,6);
+  if(t%10===0){const daf=dafStats();S.stateLog.push({t,mode:S.mode,daf,mengerLevel:S.mengerLevel,zDepth:S.zDepth});if(S.stateLog.length>120)S.stateLog.shift();}
+  updateTicker(t);
+}
+
+// ── UI UPDATERS ──────────────────────────────────────────────────────────
+function updateReadout({nodes,energy,entropy,compress,dim,cells,alert}){
+  document.getElementById('r-nodes').textContent=nodes;
+  document.getElementById('r-energy').textContent=energy;
+  document.getElementById('r-entropy').textContent=entropy;
+  document.getElementById('r-compress').textContent=compress;
+  document.getElementById('r-dim').textContent=dim||MENGER_DIM.toFixed(3);
+  document.getElementById('r-cells').textContent=cells||'—';
+  const al=document.getElementById('r-alert');al.textContent=alert;al.className=alert==='NONE'?'rval':'rval ralert';
+}
+function updateDAFBars(daf){
+  document.getElementById('daf-circ').style.width=(daf.circ*100).toFixed(1)+'%';
+  document.getElementById('daf-drift').style.width=(daf.drift*100).toFixed(1)+'%';
+  document.getElementById('daf-trap').style.width=(daf.trap*100).toFixed(1)+'%';
+  document.getElementById('daf-brit').style.width=(daf.brittle*100).toFixed(1)+'%';
+  document.getElementById('dv-circ').textContent=(daf.circ*100).toFixed(0)+'%';
+  document.getElementById('dv-drift').textContent=(daf.drift*100).toFixed(0)+'%';
+  document.getElementById('dv-trap').textContent=(daf.trap*100).toFixed(0)+'%';
+  document.getElementById('dv-brit').textContent=(daf.brittle*100).toFixed(0)+'%';
+}
+
+function buildTicker(){
+  const defs=[
+    {id:'tk-tick',lbl:'TICK',val:'000000',sub:'sim clock'},
+    {id:'tk-mode',lbl:'MODE',val:'FIELD',sub:'render mode'},
+    {id:'tk-nodes',lbl:'NODES',val:'—',sub:'UFM figures'},
+    {id:'tk-energy',lbl:'ENERGY',val:'—',sub:'field avg'},
+    {id:'tk-dim',lbl:'HAUSDORFF DIM',val:'2.727',sub:'log(20)/log(3)',violet:true},
+    {id:'tk-cells',lbl:'MENGER CELLS',val:'—',sub:'surviving',violet:true},
+    {id:'tk-level',lbl:'MENGER LEVEL',val:'2',sub:'recursion depth',violet:true},
+    {id:'tk-zdepth',lbl:'Z DEPTH',val:'0',sub:'current slice',violet:true},
+    {id:'tk-daf',lbl:'DAF STATE',val:'CIRC',sub:'dominant'},
+    {id:'tk-8bit',lbl:'EXT PAL',val:'MATH',sub:'128–255 layer',gold:true},
+    {id:'tk-pal',lbl:'7-BIT PAL',val:'DENSITY',sub:'base 0–127'},
+    {id:'',lbl:'ASCIII',val:'v3',sub:'menger volumetric'},
+    {id:'',lbl:'DIM',val:'2.727',sub:'fractal dimension',violet:true},
+    {id:'',lbl:'LICENSE',val:'SAL-1.0',sub:'UUON Foundation'},
+  ];
+  const all=[...defs,...defs];
+  const track=document.getElementById('ticker-track');track.innerHTML='';
+  all.forEach(d=>{
+    const div=document.createElement('div');div.className='tk-item';if(d.id)div.id=d.id;
+    const subClass=d.violet?' violet':d.gold?' gold':'';
+    div.innerHTML=`<div class="tk-lbl">${d.lbl}</div><div class="tk-val">${d.val}</div><div class="tk-sub${subClass}">${d.sub}</div>`;
+    track.appendChild(div);
+    const dv=document.createElement('div');dv.className='tk-div';track.appendChild(dv);
+  });
+}
+function setTk(id,val){document.querySelectorAll('#'+id+' .tk-val').forEach(el=>el.textContent=val);}
+function updateTicker(t){
+  const daf=dafStats();
+  const dom=daf.circ>=daf.drift&&daf.circ>=daf.trap&&daf.circ>=daf.brittle?'CIRC':daf.drift>=daf.trap&&daf.drift>=daf.brittle?'DRIFT':daf.trap>=daf.brittle?'TRAP':'BRIT';
+  setTk('tk-tick',pn(t,6));setTk('tk-mode',S.mode.toUpperCase());
+  setTk('tk-nodes',String(GRAPH.nodes.length));
+  setTk('tk-energy',document.getElementById('r-energy').textContent);
+  setTk('tk-dim',MENGER_DIM.toFixed(3));
+  setTk('tk-cells',MENGER_CELLS.length.toLocaleString());
+  setTk('tk-level',String(S.mengerLevel));
+  setTk('tk-zdepth',String(S.zDepth));
+  setTk('tk-daf',dom);setTk('tk-8bit',activePal8.toUpperCase());
+  setTk('tk-pal',activePal7.toUpperCase());
+}
+
+function buildPaletteUI(){
+  const grid=document.getElementById('palette-grid');grid.innerHTML='';
+  const l7=document.createElement('div');l7.style.cssText='width:100%;font-family:Share Tech Mono,monospace;font-size:7px;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin-bottom:4px;';l7.textContent='BASE 0–127';grid.appendChild(l7);
+  PAL_NAMES_7.forEach(name=>{const chars=PAL7[name],chip=document.createElement('div');chip.className='pchip'+(name===activePal7?' active':'');chip.textContent=chars[Math.floor(chars.length*.6)]||'?';chip.title=name;chip.innerHTML+='<span class="ptip">'+name.toUpperCase()+'</span>';chip.onclick=()=>{activePal7=name;document.querySelectorAll('.pchip:not(.ext8)').forEach(c=>c.classList.remove('active'));chip.classList.add('active');};grid.appendChild(chip);});
+  const l8=document.createElement('div');l8.style.cssText='width:100%;font-family:Share Tech Mono,monospace;font-size:7px;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin:8px 0 4px;';l8.textContent='EXTENDED 128–255';grid.appendChild(l8);
+  PAL_NAMES_8.forEach(name=>{const chars=PAL8[name],chip=document.createElement('div');chip.className='pchip ext8'+(name===activePal8?' active':'');chip.style.borderColor='rgba(201,168,76,.35)';chip.textContent=chars[Math.floor(chars.length*.3)]||'?';chip.title=name;chip.innerHTML+='<span class="ptip">'+name.toUpperCase()+'</span>';chip.onclick=()=>{activePal8=name;document.querySelectorAll('.pchip.ext8').forEach(c=>c.classList.remove('active'));chip.classList.add('active');};grid.appendChild(chip);});
+}
+
+let grainCanvas,grainCtx;
+function buildGrain(){grainCanvas=document.getElementById('grain-canvas');grainCtx=grainCanvas.getContext('2d');resizeGrain();window.addEventListener('resize',resizeGrain);}
+function resizeGrain(){const m=document.querySelector('main');grainCanvas.width=m.clientWidth;grainCanvas.height=m.clientHeight;paintGrain();}
+function paintGrain(){const w=grainCanvas.width,h=grainCanvas.height,id=grainCtx.createImageData(w,h),d=id.data;for(let i=0;i<d.length;i+=4){const v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}grainCtx.putImageData(id,0,0);}
+
+function setParam(key,val){S[key]=val;const el=document.getElementById('v-'+key);if(!el)return;if(key==='speed')el.textContent=val+'ms';else if(key==='resolution'||key==='ufmCount'||key==='mengerLevel'||key==='zDepth')el.textContent=val;else el.textContent=val.toFixed(2);if(key==='mengerLevel')buildMenger();}
+function setMode(m,btn){S.mode=m;document.querySelectorAll('.mbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('r-mode').textContent=m.toUpperCase();}
+function togglePause(){S.paused=!S.paused;const btn=document.getElementById('btn-pause');btn.textContent=S.paused?'▶ RESUME':'⏸ PAUSE';btn.classList.toggle('active',S.paused);document.getElementById('paused-badge').classList.toggle('show',S.paused);document.getElementById('ticker-track').classList.toggle('paused',S.paused);}
+function resetSim(){S.tick=0;S.stateLog=[];rebuildGraph();buildMenger();}
+function toggleDark(){S.dark=!S.dark;document.body.classList.toggle('dark',S.dark);setTimeout(paintGrain,50);}
+
+function exportTXT(){const text=document.getElementById('asciii-output').textContent;const blob=new Blob([text],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v3-frame-t'+pn(S.tick,6)+'.txt';a.click();URL.revokeObjectURL(url);}
+function exportLog(){const lines=S.stateLog.map(e=>`t=${pn(e.t,6)}  mode=${e.mode}  lvl=${e.mengerLevel}  z=${e.zDepth}  circ=${(e.daf.circ*100).toFixed(0)}%  brit=${(e.daf.brittle*100).toFixed(0)}%`);const blob=new Blob(['ASCIII v3 STATE LOG\nPhillip Aguilar Ruiz III / UUON Foundation Inc.\nSAL-1.0\nHausdorff dim = '+MENGER_DIM.toFixed(7)+'\n'+'─'.repeat(72)+'\n\n'+lines.join('\n')],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v3-log-t'+pn(S.tick,6)+'.txt';a.click();URL.revokeObjectURL(url);}
+function exportMengerMap(){
+  const level=S.mengerLevel,gridSize=Math.pow(3,level);
+  const lines=['ASCIII v3 MENGER MAP','level='+level+'  gridSize='+gridSize+'  dim='+MENGER_DIM.toFixed(7),'Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0','─'.repeat(64),''];
+  for(let z=0;z<Math.min(gridSize,3);z++){
+    lines.push('z='+z+':');
+    for(let y=0;y<gridSize;y++){
+      let row='';for(let x=0;x<gridSize;x++)row+=inMenger(x,y,z,level)?'█':' ';lines.push('  │'+row+'│');
+    }
+    lines.push('');
+  }
+  lines.push('surviving cells: '+MENGER_CELLS.length);
+  lines.push('void cells: '+MENGER_VOID.length);
+  lines.push('survival rate: '+(MENGER_CELLS.length/(MENGER_CELLS.length+MENGER_VOID.length)*100).toFixed(2)+'%');
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v3-menger-lvl'+level+'.txt';a.click();URL.revokeObjectURL(url);
+}
+
+function loop(ts){if(!S.paused&&ts-S.lastFrame>=S.speed){S.lastFrame=ts;S.tick++;renderFrame(S.tick);}requestAnimationFrame(loop);}
+
+buildPaletteUI();buildTicker();buildGrain();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

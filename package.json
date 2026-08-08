@@ -1,0 +1,33 @@
+{
+  "name": "@uuon-foundation/asciii-continuous-psystem",
+  "version": "1.0.0",
+  "description": "ASCIII Continuous Psystem — character-space field rendering and provenance layer for the clouud biological OS",
+  "main": "api/lib/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "keywords": [
+    "asciii", "field-language", "character-space", "uuon",
+    "biological-os", "lyapunov", "attractor", "semantic-field",
+    "provenance", "clouud"
+  ],
+  "author": "Phillip Aguilar Ruiz III <phi1@uuonfoundation.com>",
+  "license": "LicenseRef-USAL-1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/UUON-Foundation/asciii-continuous-psystem"
+  },
+  "homepage": "https://uuon-foundation.github.io/asciii-continuous-psystem",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  }
+}

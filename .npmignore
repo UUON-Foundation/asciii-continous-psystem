@@ -1,0 +1,8 @@
+.DS_Store
+.env
+.env.*
+*.zip
+.github/
+node_modules/
+core/
+docs/

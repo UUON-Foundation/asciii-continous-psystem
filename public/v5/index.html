@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCIII v5 — Semantic Attractor Field</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ef;--bg2:#ece9e3;--bg3:#e4e0d9;
+  --border:rgba(0,0,0,0.08);
+  --text:rgba(0,0,0,0.88);--text2:rgba(0,0,0,0.44);--text3:rgba(0,0,0,0.20);
+  --teal:#00E5CC;--gold:#C9A84C;--violet:#7B5EA7;--red:#E05A4E;
+  --canvas-bg:#efece6;--grain-op:0.045;
+}
+.dark{
+  --bg:#080808;--bg2:#101010;--bg3:#181818;
+  --border:rgba(255,255,255,0.07);
+  --text:rgba(255,255,255,0.88);--text2:rgba(255,255,255,0.40);--text3:rgba(255,255,255,0.15);
+  --canvas-bg:#040404;--grain-op:0.090;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;}
+header{position:fixed;top:0;left:0;right:0;z-index:200;height:44px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 18px;}
+.logo{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.14em;}
+.logo em{color:var(--violet);font-style:normal;}
+.logo sup{color:var(--violet);font-size:9px;vertical-align:super;opacity:.7;}
+.hcenter{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;}
+.hright{display:flex;align-items:center;gap:9px;}
+.hbtn{font-family:'Share Tech Mono',monospace;font-size:10px;background:none;
+  border:1px solid var(--border);color:var(--text2);padding:3px 9px;cursor:pointer;transition:all .15s;}
+.hbtn:hover{color:var(--teal);border-color:var(--teal);}
+.hbtn.active{color:var(--teal);border-color:var(--teal);background:rgba(0,229,204,.05);}
+.hbtn.v{border-color:rgba(123,94,167,.45);color:var(--violet);}
+.hbtn.v:hover,.hbtn.v.active{border-color:var(--violet);background:rgba(123,94,167,.06);}
+.shell{position:fixed;top:44px;bottom:88px;left:0;right:0;display:flex;}
+aside{width:264px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);
+  overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;}
+aside::-webkit-scrollbar{width:3px;}
+aside::-webkit-scrollbar-thumb{background:var(--border);}
+.ss{padding:10px 13px 12px;border-bottom:1px solid var(--border);}
+.slbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.20em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:block;}
+.wrow{display:flex;gap:4px;margin-bottom:7px;}
+.winp{font-family:'Share Tech Mono',monospace;font-size:10px;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:4px 7px;flex:1;outline:none;transition:border-color .15s;}
+.winp:focus{border-color:var(--violet);}
+.wadd{font-family:'Share Tech Mono',monospace;font-size:10px;background:none;
+  border:1px solid rgba(123,94,167,.5);color:var(--violet);padding:4px 8px;
+  cursor:pointer;transition:all .15s;}
+.wadd:hover{background:rgba(123,94,167,.09);border-color:var(--violet);}
+.wchips{display:flex;flex-wrap:wrap;gap:4px;min-height:22px;}
+.wchip{font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;
+  border:1px solid;display:inline-flex;align-items:center;gap:4px;}
+.wrm{opacity:.3;font-size:11px;cursor:pointer;transition:opacity .1s;}
+.wrm:hover{opacity:1;}
+.mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.mbtn{font-family:'Share Tech Mono',monospace;font-size:9px;padding:5px 1px;
+  background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;
+  text-align:center;transition:all .15s;line-height:1.3;}
+.mbtn:hover,.mbtn.active{border-color:var(--violet);color:var(--violet);background:rgba(123,94,167,.06);}
+.cr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.cl{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:500;
+  letter-spacing:.07em;color:var(--text2);text-transform:uppercase;}
+.cv{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--violet);min-width:40px;text-align:right;}
+.cv.g{color:var(--gold);}
+.cv.r{color:var(--red);}
+input[type=range]{width:100%;-webkit-appearance:none;height:1px;
+  background:var(--border);outline:none;margin-bottom:7px;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;
+  border-radius:50%;background:var(--violet);cursor:pointer;}
+input[type=range].t::-webkit-slider-thumb{background:var(--teal);}
+input[type=range].g::-webkit-slider-thumb{background:var(--gold);}
+input[type=range].r::-webkit-slider-thumb{background:var(--red);}
+.agrid{display:flex;flex-direction:column;gap:4px;}
+.ar{display:flex;align-items:center;gap:5px;}
+.an{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);letter-spacing:.06em;width:52px;flex-shrink:0;}
+.abw{flex:1;height:2px;background:var(--border);}
+.abf{height:2px;transition:width .35s;}
+.av{font-family:'Share Tech Mono',monospace;font-size:8px;min-width:26px;text-align:right;}
+.lbw{width:100%;height:3px;background:var(--border);margin:5px 0 3px;}
+.lb{height:3px;background:var(--violet);transition:width .3s,background .3s;}
+.lpos{background:var(--red);}
+.lneg{background:var(--teal);}
+.lrow{font-family:'Share Tech Mono',monospace;font-size:9px;display:flex;justify-content:space-between;color:var(--text3);}
+.elog{font-family:'Share Tech Mono',monospace;font-size:8px;line-height:1.8;color:var(--text3);max-height:66px;overflow:hidden;}
+.et{color:var(--text3);}
+.em{color:var(--violet);}
+.echaos{color:var(--red);}
+.eorder{color:var(--teal);}
+.ro{font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.9;}
+.rk{color:var(--text3);display:inline-block;width:64px;}
+.rv{color:var(--teal);}
+.rvi{color:var(--violet);}
+.rg{color:var(--gold);}
+.ral{color:var(--red);}
+.pb{font-family:'Share Tech Mono',monospace;font-size:9px;width:100%;padding:5px 0;
+  background:none;border:1px solid var(--border);color:var(--text2);
+  cursor:pointer;margin-bottom:3px;transition:all .15s;}
+.pb:hover{border-color:var(--violet);color:var(--violet);}
+main{flex:1;position:relative;overflow:hidden;background:var(--canvas-bg);transition:background .3s;}
+#grain{position:absolute;inset:0;pointer-events:none;opacity:var(--grain-op);z-index:1;}
+#out{font-family:'Share Tech Mono',monospace;line-height:1.0;letter-spacing:0;
+  color:var(--text);white-space:pre;position:absolute;inset:0;z-index:2;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;transition:color .3s;}
+.mbadge{position:absolute;top:10px;left:13px;z-index:10;
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.18em;
+  color:var(--text3);pointer-events:none;}
+.pbadge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.16em;
+  color:var(--gold);border:1px solid var(--gold);padding:2px 10px;
+  background:var(--bg2);display:none;}
+.pbadge.show{display:block;}
+.vbadge{position:absolute;top:10px;right:13px;z-index:10;
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.14em;
+  color:var(--violet);border:1px solid rgba(123,94,167,.35);padding:2px 8px;}
+.ctag{position:absolute;bottom:9px;right:12px;z-index:10;
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.10em;
+  color:var(--text3);text-align:right;line-height:1.9;pointer-events:none;}
+.ticker{position:fixed;bottom:0;left:0;right:0;height:88px;
+  background:var(--bg2);border-top:1px solid var(--border);overflow:hidden;display:flex;align-items:center;}
+.ttrack{display:flex;animation:tscroll 52s linear infinite;white-space:nowrap;}
+.ttrack.paused{animation-play-state:paused;}
+@keyframes tscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ti{display:flex;flex-direction:column;gap:3px;min-width:148px;padding:0 24px 0 0;}
+.tl{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;}
+.tv{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;letter-spacing:.02em;color:var(--text);line-height:1;}
+.ts{font-family:'Share Tech Mono',monospace;font-size:8px;}
+.ts.v{color:var(--violet);}
+.ts.g{color:var(--gold);}
+.ts.r{color:var(--red);}
+.ts.t{color:var(--teal);}
+.tdv{width:1px;height:52px;background:var(--border);flex-shrink:0;margin-right:24px;align-self:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ASC<em>III</em><sup>5</sup>
+    <span style="color:var(--text3);font-size:10px;margin-left:7px;">SEMANTIC ATTRACTOR FIELD</span></div>
+  <div class="hcenter">UUON Foundation Inc. · Consciousness Axes · Perceptual Field Engine · SAL-1.0</div>
+  <div class="hright">
+    <button class="hbtn v" id="btn-pause" onclick="togglePause()">⏸ PAUSE</button>
+    <button class="hbtn" onclick="resetSim()">↺ RESET</button>
+    <button class="hbtn" onclick="toggleDark()">◐ INVERT</button>
+  </div>
+</header>
+
+<div class="shell">
+<aside>
+
+  <div class="ss">
+    <span class="slbl">Semantic Input</span>
+    <div class="wrow">
+      <input class="winp" id="wi" placeholder="enter word…" maxlength="22"
+        onkeydown="if(event.key==='Enter')addWord()">
+      <button class="wadd" onclick="addWord()">+ ADD</button>
+    </div>
+    <div class="wchips" id="wchips"></div>
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Field Mode</span>
+    <div class="mgrid">
+      <button class="mbtn active" onclick="setMode('field',this)">FIELD</button>
+      <button class="mbtn" onclick="setMode('variance',this)">VARIANCE</button>
+      <button class="mbtn" onclick="setMode('basin',this)">BASIN</button>
+      <button class="mbtn" onclick="setMode('delta',this)">ΔFIELD</button>
+      <button class="mbtn" onclick="setMode('diverge',this)">DIVERGE</button>
+      <button class="mbtn" onclick="setMode('feeling',this)">FEELING</button>
+      <button class="mbtn" onclick="setMode('poincare',this)">POINCARÉ</button>
+      <button class="mbtn" onclick="setMode('tension',this)">TENSION</button>
+      <button class="mbtn" onclick="setMode('integrate',this)">Φ-INTEGR</button>
+    </div>
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Observer</span>
+    <div class="cr"><span class="cl">FOV</span><span class="cv g" id="v-fov">1.00</span></div>
+    <input type="range" class="g" min="20" max="400" value="100"
+      oninput="P.fov=this.value/100;document.getElementById('v-fov').textContent=P.fov.toFixed(2)">
+    <div class="cr"><span class="cl">Focal X</span><span class="cv g" id="v-fx">0.50</span></div>
+    <input type="range" class="g" min="0" max="100" value="50"
+      oninput="P.focalX=this.value/100;document.getElementById('v-fx').textContent=P.focalX.toFixed(2)">
+    <div class="cr"><span class="cl">Focal Y</span><span class="cv g" id="v-fy">0.50</span></div>
+    <input type="range" class="g" min="0" max="100" value="50"
+      oninput="P.focalY=this.value/100;document.getElementById('v-fy').textContent=P.focalY.toFixed(2)">
+    <div class="cr"><span class="cl">Depth</span><span class="cv g" id="v-dep">0.55</span></div>
+    <input type="range" class="g" min="0" max="100" value="55"
+      oninput="P.depth=this.value/100;document.getElementById('v-dep').textContent=P.depth.toFixed(2)">
+    <div class="cr"><span class="cl">Resolution</span><span class="cv" id="v-res">58</span></div>
+    <input type="range" min="22" max="96" value="58"
+      oninput="P.res=parseInt(this.value);document.getElementById('v-res').textContent=this.value">
+    <div class="cr"><span class="cl">Tick Speed</span><span class="cv" id="v-spd">80ms</span></div>
+    <input type="range" min="16" max="600" value="80"
+      oninput="P.speed=parseInt(this.value);document.getElementById('v-spd').textContent=this.value+'ms'">
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Consciousness Parameters</span>
+    <div class="cr"><span class="cl">Integration</span><span class="cv" id="v-int">0.55</span></div>
+    <input type="range" min="0" max="100" value="55"
+      oninput="P.integration=this.value/100;document.getElementById('v-int').textContent=P.integration.toFixed(2);rebuildTgt()">
+    <div class="cr"><span class="cl">Self-Ref</span><span class="cv g" id="v-sr">0.30</span></div>
+    <input type="range" class="g" min="0" max="100" value="30"
+      oninput="P.selfref=this.value/100;document.getElementById('v-sr').textContent=P.selfref.toFixed(2);rebuildTgt()">
+    <div class="cr"><span class="cl">Buf Depth</span><span class="cv" id="v-buf">52</span></div>
+    <input type="range" min="8" max="128" value="52"
+      oninput="P.bufDepth=parseInt(this.value);document.getElementById('v-buf').textContent=this.value;clearBufs()">
+    <div class="cr"><span class="cl">Perturbation</span><span class="cv r" id="v-pert">0.00</span></div>
+    <input type="range" class="r" min="0" max="80" value="0"
+      oninput="P.pert=this.value/100;document.getElementById('v-pert').textContent=P.pert.toFixed(2)">
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Consciousness Axes — Live</span>
+    <div class="agrid" id="agrid"></div>
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Lyapunov λ — Semantic Divergence</span>
+    <div class="lbw"><div class="lb" id="lbar" style="width:50%"></div></div>
+    <div class="lrow">
+      <span>ORDER</span>
+      <span id="lval" style="color:var(--violet)">0.0000</span>
+      <span>CHAOS</span>
+    </div>
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Phase Events</span>
+    <div class="elog" id="elog"></div>
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Live Readout</span>
+    <div class="ro">
+      <div><span class="rk">tick    </span><span class="rv" id="r-tick">000000</span></div>
+      <div><span class="rk">mode    </span><span class="rvi" id="r-mode">FIELD</span></div>
+      <div><span class="rk">words   </span><span class="rvi" id="r-words">—</span></div>
+      <div><span class="rk">λ       </span><span class="rvi" id="r-lyap">—</span></div>
+      <div><span class="rk">valence </span><span class="rv" id="r-val">—</span></div>
+      <div><span class="rk">arousal </span><span class="rv" id="r-aro">—</span></div>
+      <div><span class="rk">integr  </span><span class="rv" id="r-int2">—</span></div>
+      <div><span class="rk">Φ-analog</span><span class="rg" id="r-phi">—</span></div>
+      <div><span class="rk">tension </span><span class="rg" id="r-ten">—</span></div>
+      <div><span class="rk">state   </span><span class="rg" id="r-state">—</span></div>
+      <div><span class="rk">alert   </span><span class="rv ral" id="r-alert">NONE</span></div>
+    </div>
+  </div>
+
+  <div class="ss">
+    <span class="slbl">Presets</span>
+    <button class="pb" onclick="preset('consciousness')">CONSCIOUSNESS</button>
+    <button class="pb" onclick="preset('pain')">PAIN STATE</button>
+    <button class="pb" onclick="preset('joy')">JOY / FLOW</button>
+    <button class="pb" onclick="preset('grief')">GRIEF / LOSS</button>
+    <button class="pb" onclick="preset('awe')">AWE / WONDER</button>
+    <button class="pb" onclick="preset('fear')">FEAR / THREAT</button>
+    <button class="pb" onclick="preset('anger_calm')">ANGER ↔ CALM</button>
+    <button class="pb" onclick="preset('love_grief')">LOVE ↔ GRIEF</button>
+    <button class="pb" style="margin-top:4px;border-color:rgba(123,94,167,.4);color:var(--violet)"
+      onclick="exportFrame()">↓ EXPORT FRAME</button>
+  </div>
+
+</aside>
+
+<main>
+  <canvas id="grain"></canvas>
+  <pre id="out"></pre>
+  <div class="mbadge" id="mbadge">FIELD</div>
+  <div class="pbadge" id="pbadge">⏸ PAUSED</div>
+  <div class="vbadge">SEMANTIC · v5</div>
+  <div class="ctag">ASCIII v5 · Semantic Attractor<br>Phillip Aguilar Ruiz III<br>UUON Foundation Inc.</div>
+</main>
+</div>
+
+<div class="ticker">
+  <div class="ttrack" id="ttrack"></div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════════════
+// ASCIII v5 — SEMANTIC ATTRACTOR FIELD
+//
+// Words become attractors in an 11-dimensional consciousness space.
+// Each word pulls the field through its axis-delta vector.
+// Opposing words produce destructive interference.
+// Aligned words produce constructive interference.
+// The topology that emerges is shaped by relationships between meanings.
+//
+// CONSCIOUSNESS AXES (11D):
+// [0]valence [1]intensity [2]arousal [3]attention [4]salience
+// [5]integration [6]persistence [7]certainty [8]self-ref [9]agency [10]embodiment
+//
+// Grounded in: Russell (1980) circumplex, ANEW norms,
+// NRC Affect Intensity, Barrett (2017) constructed emotion theory.
+//
+// Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0
+// ═══════════════════════════════════════════════════════════════════════════
+
+const P = {
+  dark:false, paused:false, mode:'field', tick:0, lastFrame:0,
+  fov:1.0, focalX:0.5, focalY:0.5, depth:0.55,
+  res:58, speed:80, integration:0.55, selfref:0.30,
+  pert:0.0, bufDepth:52,
+};
+
+const AX = [
+  {id:'valence',   lbl:'VALENCE',   base:.50,cur:.50,tgt:.50,col:'#00E5CC'},
+  {id:'intensity', lbl:'INTENSITY', base:.50,cur:.50,tgt:.50,col:'#C9A84C'},
+  {id:'arousal',   lbl:'AROUSAL',   base:.40,cur:.40,tgt:.40,col:'#E05A4E'},
+  {id:'attention', lbl:'ATTENTION', base:.50,cur:.50,tgt:.50,col:'#7B5EA7'},
+  {id:'salience',  lbl:'SALIENCE',  base:.35,cur:.35,tgt:.35,col:'#C9A84C'},
+  {id:'integratn', lbl:'INTEGRATN', base:.55,cur:.55,tgt:.55,col:'#00E5CC'},
+  {id:'persist',   lbl:'PERSIST',   base:.50,cur:.50,tgt:.50,col:'#7B5EA7'},
+  {id:'certainty', lbl:'CERTAINTY', base:.50,cur:.50,tgt:.50,col:'#00E5CC'},
+  {id:'selfref',   lbl:'SELF-REF',  base:.30,cur:.30,tgt:.30,col:'#C9A84C'},
+  {id:'agency',    lbl:'AGENCY',    base:.50,cur:.50,tgt:.50,col:'#7B5EA7'},
+  {id:'embodiment',lbl:'EMBODY',    base:.40,cur:.40,tgt:.40,col:'#E05A4E'},
+];
+const N_AX = AX.length;
+
+// ── LEXICON — 11D axis-delta vectors ────────────────────────────────────
+// [val, int, aro, atn, sal, intg, per, cert, srf, agn, emb]
+const LEX = {
+  'awareness':    [+.12,+.22,+.12,+.42,+.32,+.30,+.22,+.22,+.32,+.12,+.12],
+  'attention':    [+.02,+.14,+.22,+.48,+.42,+.22,+.12,+.30,+.22,+.22,+.08],
+  'presence':     [+.22,+.14,+.04,+.32,+.22,+.42,+.42,+.32,+.42,+.12,+.32],
+  'consciousness':[+.12,+.32,+.12,+.42,+.32,+.48,+.32,+.22,+.48,+.32,+.22],
+  'self':         [+.04,+.22,+.12,+.32,+.22,+.32,+.42,+.22,+.48,+.42,+.30],
+  'ego':          [-.08,+.32,+.22,+.42,+.32,+.22,+.32,+.22,+.48,+.48,+.22],
+  'memory':       [+.04,+.22,-.08,+.22,+.22,+.32,+.48,+.32,+.42,+.12,+.12],
+  'thought':      [+.04,+.22,+.12,+.42,+.22,+.32,+.22,+.22,+.42,+.32,-.08],
+  'perception':   [+.12,+.22,+.12,+.42,+.42,+.22,+.12,+.22,+.22,+.12,+.32],
+  'integration':  [+.22,+.12,+.04,+.22,+.12,+.48,+.32,+.32,+.22,+.22,+.12],
+  'agency':       [+.22,+.32,+.22,+.32,+.22,+.32,+.32,+.32,+.32,+.48,+.32],
+  'embodiment':   [+.12,+.22,+.12,+.32,+.32,+.32,+.32,+.32,+.22,+.22,+.48],
+  'joy':          [+.48,+.42,+.42,+.32,+.42,+.42,+.22,+.32,+.22,+.32,+.32],
+  'pain':         [-.42,+.48,+.42,+.48,+.48,+.12,+.32,+.22,+.32,-.18,+.48],
+  'grief':        [-.48,+.42,-.08,+.42,+.42,-.18,+.48,-.18,+.42,-.18,+.42],
+  'fear':         [-.42,+.48,+.48,+.48,+.48,-.18,+.22,-.28,+.22,-.18,+.42],
+  'love':         [+.48,+.42,+.32,+.32,+.42,+.48,+.42,+.32,+.32,+.22,+.32],
+  'anger':        [-.18,+.48,+.48,+.48,+.48,-.28,+.12,+.12,+.22,+.48,+.42],
+  'calm':         [+.32,-.18,-.28,+.22,-.08,+.42,+.32,+.42,+.22,+.22,+.12],
+  'anxiety':      [-.28,+.42,+.48,+.48,+.42,-.28,+.22,-.42,+.32,-.18,+.42],
+  'wonder':       [+.42,+.32,+.32,+.48,+.48,+.32,+.22,-.08,+.12,+.22,+.22],
+  'awe':          [+.32,+.48,+.32,+.48,+.48,+.42,+.32,-.08,+.12,+.12,+.32],
+  'longing':      [+.12,+.42,+.22,+.32,+.42,+.22,+.48,-.18,+.32,+.22,+.22],
+  'confusion':    [-.08,+.32,+.22,+.42,+.32,-.42,+.22,-.48,+.32,+.12,+.12],
+  'clarity':      [+.32,+.22,+.12,+.32,+.32,+.48,+.32,+.48,+.22,+.32,+.22],
+  'peace':        [+.42,-.18,-.28,+.12,-.08,+.42,+.42,+.42,+.22,+.22,+.22],
+  'shame':        [-.42,+.42,+.22,+.42,+.42,-.28,+.42,+.12,+.48,-.28,+.42],
+  'pride':        [+.42,+.32,+.32,+.32,+.42,+.32,+.32,+.32,+.48,+.48,+.22],
+  'boredom':      [-.08,-.42,-.42,-.28,-.28,-.18,+.12,+.22,+.22,-.18,-.08],
+  'flow':         [+.42,+.32,+.22,+.48,+.32,+.48,+.32,+.42,+.22,+.42,+.22],
+  'ecstasy':      [+.48,+.48,+.48,+.42,+.48,+.48,+.22,+.12,+.22,+.32,+.48],
+  'despair':      [-.48,+.42,-.18,+.32,+.42,-.42,+.48,-.28,+.32,-.42,+.32],
+  'trust':        [+.42,+.12,-.12,+.22,+.22,+.42,+.42,+.48,+.22,+.32,+.22],
+  'disgust':      [-.42,+.38,+.28,+.42,+.42,-.22,+.18,+.28,+.18,+.28,+.32],
+  'surprise':     [+.12,+.42,+.48,+.48,+.48,-.08,-.12,-.42,+.08,+.08,+.28],
+  'anticipation': [+.22,+.32,+.32,+.42,+.38,+.28,+.32,+.22,+.22,+.38,+.22],
+  'light':        [+.32,+.22,+.22,+.42,+.42,+.22,+.12,+.32,+.12,+.12,+.22],
+  'dark':         [-.08,+.12,-.18,+.22,+.22,+.12,+.32,+.22,+.22,+.12,+.22],
+  'silence':      [+.22,-.28,-.28,+.22,+.22,+.32,+.32,+.32,+.32,+.12,+.12],
+  'sound':        [+.12,+.22,+.32,+.42,+.42,+.22,+.12,+.22,+.12,+.12,+.32],
+  'touch':        [+.12,+.32,+.22,+.48,+.48,+.22,+.22,+.42,+.12,+.12,+.48],
+  'depth':        [+.12,+.22,+.04,+.22,+.22,+.32,+.32,+.22,+.12,+.12,+.32],
+  'shadow':       [-.08,+.12,-.08,+.22,+.32,+.22,+.22,+.22,+.12,+.12,+.22],
+  'space':        [+.22,+.12,-.08,+.22,+.22,+.32,+.22,+.22,+.12,+.12,+.22],
+  'time':         [+.12,+.22,+.04,+.22,+.22,+.32,+.48,+.22,+.22,+.12,+.04],
+  'motion':       [+.12,+.32,+.42,+.42,+.42,+.22,+.12,+.22,+.12,+.22,+.32],
+  'boundary':     [+.04,+.22,+.12,+.32,+.42,+.12,+.22,+.32,+.12,+.22,+.32],
+  'field':        [+.12,+.22,+.04,+.22,+.22,+.42,+.22,+.32,+.12,+.12,+.12],
+  'gravity':      [+.04,+.32,+.08,+.28,+.32,+.42,+.42,+.38,+.08,+.22,+.42],
+  'resonance':    [+.28,+.32,+.28,+.38,+.38,+.42,+.32,+.32,+.22,+.18,+.28],
+  'understanding':[+.32,+.22,+.04,+.32,+.22,+.48,+.32,+.42,+.32,+.32,+.12],
+  'knowledge':    [+.22,+.22,+.04,+.32,+.22,+.42,+.42,+.48,+.32,+.32,+.04],
+  'belief':       [+.12,+.32,+.12,+.32,+.32,+.32,+.42,+.22,+.42,+.32,+.12],
+  'doubt':        [-.08,+.32,+.22,+.42,+.32,-.18,+.22,-.42,+.32,+.22,+.12],
+  'truth':        [+.32,+.32,+.12,+.32,+.32,+.42,+.42,+.48,+.22,+.32,+.04],
+  'meaning':      [+.32,+.32,+.12,+.42,+.42,+.48,+.42,+.32,+.42,+.32,+.22],
+  'emptiness':    [-.08,-.28,-.28,+.12,+.12,-.28,+.32,+.22,+.32,-.08,+.12],
+  'infinity':     [+.22,+.48,+.22,+.42,+.42,+.48,+.48,-.28,+.12,+.12,-.18],
+  'nothing':      [-.08,-.42,-.42,-.18,-.18,-.42,+.12,+.22,+.22,-.18,-.18],
+  'everything':   [+.22,+.48,+.32,+.48,+.48,+.48,+.42,-.18,+.22,+.22,+.22],
+  'pattern':      [+.22,+.22,+.12,+.42,+.32,+.48,+.32,+.42,+.12,+.22,+.12],
+  'chaos':        [-.08,+.42,+.48,+.42,+.48,-.42,+.12,-.42,+.12,+.12,+.22],
+  'order':        [+.22,+.22,-.08,+.32,+.22,+.48,+.42,+.48,+.12,+.32,+.12],
+  'connection':   [+.42,+.32,+.22,+.32,+.32,+.48,+.32,+.32,+.32,+.22,+.32],
+  'separation':   [-.18,+.32,+.12,+.32,+.32,-.28,+.32,+.22,+.32,+.12,+.22],
+  'unity':        [+.42,+.32,+.12,+.32,+.32,+.48,+.42,+.32,+.32,+.22,+.22],
+  'dissolution':  [-.08,+.32,-.08,+.22,+.22,-.28,+.32,+.12,+.32,-.18,+.22],
+  'compassion':   [+.42,+.32,+.22,+.42,+.42,+.42,+.32,+.32,+.32,+.22,+.32],
+  'solitude':     [+.12,+.18,-.18,+.28,+.22,+.22,+.42,+.38,+.42,+.32,+.18],
+};
+
+const WCOLS=['#7B5EA7','#00E5CC','#C9A84C','#E05A4E','#5EA77B','#A74C5E','#4C7BA8','#A87B4C'];
+let wci=0;
+let WORDS=[];
+let FBUF=[], PBUF=[];
+let FW=0, FH=0;
+let LYAP=0, lyapS=0, lyapN=0;
+let EVENTS=[], lastPhase='ORDER';
+
+function clearBufs(){FBUF=[];PBUF=[];LYAP=0;lyapS=0;lyapN=0;}
+
+function scoreWord(w){
+  const lw=w.toLowerCase().trim();
+  if(LEX[lw]) return LEX[lw].slice();
+  const seed=lw.split('').reduce((a,c,i)=>a+c.charCodeAt(0)*(i+1),0);
+  return Array.from({length:N_AX},(_,i)=>{
+    const v=Math.sin(seed*0.137*(i+1))*0.40+Math.cos(seed*0.071*(i+2))*0.20;
+    return Math.max(-0.45,Math.min(0.45,v));
+  });
+}
+
+function addWord(){
+  const inp=document.getElementById('wi');
+  const raw=inp.value.trim(); if(!raw) return;
+  const w=raw.toLowerCase();
+  if(WORDS.find(x=>x.word===w)){inp.value='';return;}
+  if(WORDS.length>=8) WORDS.shift();
+  WORDS.push({
+    word:w, color:WCOLS[wci++%WCOLS.length],
+    delta:scoreWord(w), inLex:!!LEX[w],
+    phase:Math.random()*Math.PI*2,
+    x:0.12+Math.random()*0.76, y:0.12+Math.random()*0.76,
+  });
+  inp.value='';
+  rebuildTgt(); renderChips(); clearBufs();
+}
+
+function removeWord(w){
+  WORDS=WORDS.filter(x=>x.word!==w);
+  rebuildTgt(); renderChips(); clearBufs();
+}
+
+function rebuildTgt(){
+  AX.forEach(a=>{a.tgt=a.base;});
+  WORDS.forEach(w=>{
+    AX.forEach((a,i)=>{a.tgt=Math.max(0,Math.min(1,a.tgt+w.delta[i]));});
+  });
+  const ia=AX[5]; ia.tgt=Math.max(0,Math.min(1,ia.tgt*0.70+P.integration*0.30));
+  const sa=AX[8]; sa.tgt=Math.max(0,Math.min(1,sa.tgt*0.70+P.selfref*0.30));
+}
+
+function renderChips(){
+  const c=document.getElementById('wchips'); c.innerHTML='';
+  WORDS.forEach(w=>{
+    const d=document.createElement('div');
+    d.className='wchip';
+    d.style.cssText=`border-color:${w.color};color:${w.color};`;
+    d.innerHTML=w.word+`<span class="wrm" onclick="removeWord('${w.word}')">✕</span>`;
+    c.appendChild(d);
+  });
+  document.getElementById('r-words').textContent=
+    WORDS.length?WORDS.map(w=>w.word).join(' · '):'—';
+}
+
+function buildAxisUI(){
+  const g=document.getElementById('agrid'); g.innerHTML='';
+  AX.forEach(a=>{
+    const r=document.createElement('div'); r.className='ar';
+    r.innerHTML=`<span class="an">${a.lbl}</span>
+      <div class="abw"><div class="abf" id="af-${a.id}"
+        style="width:${a.cur*100}%;background:${a.col}"></div></div>
+      <span class="av" id="av-${a.id}"
+        style="color:${a.col}">${a.cur.toFixed(2)}</span>`;
+    g.appendChild(r);
+  });
+}
+
+function tickAxes(){
+  AX.forEach(a=>{
+    a.cur+=(a.tgt-a.cur)*0.032;
+    const f=document.getElementById(`af-${a.id}`);
+    const v=document.getElementById(`av-${a.id}`);
+    if(f) f.style.width=(a.cur*100).toFixed(1)+'%';
+    if(v) v.textContent=a.cur.toFixed(2);
+  });
+}
+
+function observerMap(col,row,W,H){
+  const nx=col/W, ny=row/H;
+  const dx=nx-P.focalX, dy=ny-P.focalY;
+  const r=Math.sqrt(dx*dx+dy*dy);
+  const attn=AX[3].cur;
+  const focalSharpness=0.4+attn*1.2;
+  const warp=P.fov*(1+focalSharpness*r*r*0.8);
+  const cx=P.focalX+dx*warp;
+  const cy=P.focalY+dy*warp;
+  return [cx,cy];
+}
+
+function sampleField(t,pert=0){
+  const W=P.res, H=Math.max(6,Math.floor(W*0.44));
+  FW=W; FH=H;
+  const snap=new Float32Array(W*H);
+  const ax=AX.map(a=>a.cur);
+  const [val,inten,aro,atn,sal,intg,per,cert,srf,agn,emb]=ax;
+
+  for(let row=0;row<H;row++){
+    for(let col=0;col<W;col++){
+      const [cx,cy]=observerMap(col,row,W,H);
+      let v=0;
+
+      WORDS.forEach(w=>{
+        const dx=cx-w.x, dy=cy-w.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const radius=0.18+sal*0.18+inten*0.10;
+        const spatialW=Math.exp(-(dist*dist)/(2*radius*radius));
+        if(spatialW<0.001) return;
+
+        let dot=0;
+        const axWeights=[1.2,1.0,0.9,0.7,0.8,0.8,0.5,0.6,0.6,0.5,0.5];
+        for(let i=0;i<N_AX;i++) dot+=w.delta[i]*(ax[i]-0.5)*axWeights[i];
+        dot/=N_AX;
+
+        const osc=1+Math.sin(t*0.018+w.phase)*aro*0.38;
+        const sharpness=1-intg*0.50;
+        const edgeV=Math.pow(spatialW,0.5+sharpness*1.5);
+        v+=dot*edgeV*osc*2.2;
+
+        if(aro>0.50){
+          const orbR=radius*1.6;
+          const orbD=Math.abs(dist-orbR);
+          if(orbD<radius*0.35){
+            const orbW=1-orbD/(radius*0.35);
+            v+=aro*dot*0.28*orbW*Math.cos(t*0.024+w.phase*2+dist*9);
+          }
+        }
+      });
+
+      const bfreq=(0.22+cert*0.38)*(1/Math.max(0.1,P.fov));
+      const bx=cx*Math.PI*2*bfreq, by=cy*Math.PI*2*bfreq;
+      const dFocal=Math.sqrt((cx-P.focalX)*(cx-P.focalX)+(cy-P.focalY)*(cy-P.focalY));
+      const attnSuppress=Math.exp(-dFocal*dFocal*atn*8);
+      const bg=(Math.sin(bx+t*0.006)*Math.cos(by+t*0.005))*(1-attnSuppress*0.60)*0.18;
+      v+=bg;
+
+      const sdist=Math.sqrt((cx-0.5)*(cx-0.5)+(cy-0.5)*(cy-0.5));
+      v+=Math.sin(sdist*14-t*0.021)*srf*P.selfref*0.16;
+      if(pert>0) v+=(Math.random()-0.5)*pert*0.26;
+
+      snap[row*W+col]=Math.max(-1,Math.min(1,v));
+    }
+  }
+  return snap;
+}
+
+function depthPostProcess(charIdx,row,H,palLen){
+  const per=AX[6].cur;
+  const depthFrac=P.dark?(row/H):((H-1-row)/H);
+  const dimStrength=depthFrac*per*P.depth;
+  const dimmed=charIdx*(1-dimStrength*0.55);
+  return Math.max(0,Math.min(palLen-1,Math.floor(dimmed)));
+}
+
+function pushBuf(t){
+  if(t%3!==0) return;
+  const snap=sampleField(t,0);
+  FBUF.push(snap); if(FBUF.length>P.bufDepth) FBUF.shift();
+  const snapP=sampleField(t,P.pert+0.002);
+  PBUF.push(snapP); if(PBUF.length>P.bufDepth) PBUF.shift();
+  updateLyap(snap,snapP);
+}
+
+function updateLyap(snap,snapP){
+  if(FBUF.length<2) return;
+  let d=0;
+  for(let i=0;i<snap.length;i++) d+=(snap[i]-snapP[i])*(snap[i]-snapP[i]);
+  d=Math.sqrt(d/snap.length);
+  const pb=FBUF.length-2;
+  if(pb>=0&&PBUF[pb]){
+    let pd=0;
+    const pf=FBUF[pb],pp=PBUF[pb];
+    for(let i=0;i<pf.length;i++) pd+=(pf[i]-pp[i])*(pf[i]-pp[i]);
+    pd=Math.sqrt(pd/pf.length);
+    if(pd>0){lyapS+=Math.log(d/pd);lyapN++;LYAP=lyapS/lyapN;}
+  }
+  const ns=LYAP>0.06?'CHAOS':LYAP<-0.06?'ORDER':'EDGE';
+  if(ns!==lastPhase){logEv(P.tick,ns,lastPhase);lastPhase=ns;}
+  const nm=Math.max(0,Math.min(1,(LYAP+0.3)/0.6));
+  const lb=document.getElementById('lbar');
+  lb.style.width=(nm*100).toFixed(1)+'%';
+  lb.className='lb '+(LYAP>0.05?'lpos':LYAP<-0.05?'lneg':'');
+  document.getElementById('lval').textContent=LYAP.toFixed(4);
+  document.getElementById('r-lyap').textContent=LYAP.toFixed(5);
+}
+
+function logEv(t,ns,os){
+  EVENTS.unshift({t,msg:`${os}→${ns}`,chaos:ns==='CHAOS',order:ns==='ORDER'});
+  if(EVENTS.length>5) EVENTS.pop();
+  const el=document.getElementById('elog');
+  el.innerHTML=EVENTS.map(e=>{
+    const cl=e.chaos?' echaos':e.order?' eorder':'';
+    return`<div><span class="et">t=${String(e.t).padStart(6,'0')} </span>`
+      +`<span class="em${cl}">${e.msg}</span></div>`;
+  }).join('');
+}
+
+function varField(){
+  if(FBUF.length<2) return null;
+  const n=FBUF.length,sz=FW*FH,vf=new Float32Array(sz);
+  for(let i=0;i<sz;i++){
+    let s=0,s2=0;
+    for(let k=0;k<n;k++){s+=FBUF[k][i];s2+=FBUF[k][i]*FBUF[k][i];}
+    const m=s/n; vf[i]=Math.sqrt(Math.max(0,s2/n-m*m));
+  }
+  return vf;
+}
+
+function divField(){
+  if(FBUF.length<2||PBUF.length<2) return null;
+  const last=FBUF.length-1,sz=FW*FH,df=new Float32Array(sz);
+  for(let i=0;i<sz;i++)
+    df[i]=Math.min(1,Math.abs(FBUF[last][i]-PBUF[last][i])*16);
+  return df;
+}
+
+function autocorr(lag=1){
+  if(FBUF.length<=lag) return 0;
+  const n=FBUF.length,sz=FW*FH;
+  let cov=0,v0=0;
+  for(let i=0;i<sz;i++){
+    const a=FBUF[n-1][i],b=FBUF[n-1-lag][i];
+    cov+=a*b; v0+=a*a;
+  }
+  return v0>0?Math.max(-1,Math.min(1,cov/v0)):0;
+}
+
+function avgE(){
+  if(!FBUF.length) return 0;
+  const l=FBUF[FBUF.length-1];
+  return l.reduce((a,b)=>a+Math.abs(b),0)/l.length;
+}
+
+function interWordTension(){
+  if(WORDS.length<2) return 0;
+  let tot=0,cnt=0;
+  for(let i=0;i<WORDS.length;i++){
+    for(let j=i+1;j<WORDS.length;j++){
+      let d=0;
+      for(let k=0;k<N_AX;k++) d+=Math.abs(WORDS[i].delta[k]-WORDS[j].delta[k]);
+      tot+=d/N_AX; cnt++;
+    }
+  }
+  return cnt?tot/cnt:0;
+}
+
+const PALS={
+  field:    [' ','·','˙','∘','○','◎','●','◉','◈','▓','█'],
+  variance: [' ','·','˙','░','▒','▓','█','◈','◈','✕','✕'],
+  basin:    [' ','·','˙','∘','○','◎','●','◉','◈','▓','✕'],
+  delta:    [' ','·','─','─','═','≈','≋','▒','▓','◈','✕'],
+  diverge:  [' ','·','˙','∘','○','◎','●','◉','◈','▓','✕'],
+  feeling:  [' ','·','˙','∘','─','~','≈','○','◎','●','◉'],
+  poincare: [' ','·','˙','∘','○','◎','●','◉','◈','▓','█'],
+  tension:  [' ','·','˙','∘','○','◎','●','◉','◈','✕','✕'],
+  integrate:[' ','·','∘','○','◎','●','◉','◈','◆','▓','█'],
+};
+
+function charAt(v,mode,row,H){
+  const pal=PALS[mode]||PALS.field;
+  const idx=Math.min(pal.length-1,Math.max(0,Math.floor(v*pal.length)));
+  const dIdx=depthPostProcess(idx,row,H,pal.length);
+  return pal[dIdx];
+}
+
+function normalize(arr){
+  if(!arr) return null;
+  let mn=Infinity,mx=-Infinity;
+  for(let i=0;i<arr.length;i++){if(arr[i]<mn)mn=arr[i];if(arr[i]>mx)mx=arr[i];}
+  const rng=mx-mn||1;
+  const out=new Float32Array(arr.length);
+  for(let i=0;i<arr.length;i++) out[i]=(arr[i]-mn)/rng;
+  return out;
+}
+
+function renderField(){
+  if(!FBUF.length) return WORDS.length?'▒':'';
+  const nf=normalize(FBUF[FBUF.length-1]);
+  const W=FW,H=FH,rows=[];
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++) line+=charAt(nf[row*W+col],'field',row,H);
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderVariance(){
+  const vf=varField();
+  if(!vf) return FBUF.length?'▒':'';
+  const nf=normalize(vf);
+  const W=FW,H=FH,rows=[];
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++) line+=charAt(nf[row*W+col],'variance',row,H);
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderBasin(){
+  const vf=varField(),df=divField();
+  if(!vf) return FBUF.length?'▒':'';
+  let vmx=0,dmx=0;
+  for(let i=0;i<vf.length;i++){if(vf[i]>vmx)vmx=vf[i];if(df&&df[i]>dmx)dmx=df[i];}
+  vmx=vmx||1; dmx=dmx||1;
+  const W=FW,H=FH,rows=[];
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const i=row*W+col;
+      const v=vf[i]/vmx, d=df?df[i]/dmx:0;
+      if(v>0.40&&d>0.35) line+='✕';
+      else line+=charAt((v+d)/2,'basin',row,H);
+    }
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderDelta(){
+  if(FBUF.length<2) return '▒';
+  const last=FBUF[FBUF.length-1],prev=FBUF[FBUF.length-2];
+  const W=FW,H=FH,rows=[];
+  let mx=0;
+  for(let i=0;i<last.length;i++){const d=Math.abs(last[i]-prev[i]);if(d>mx)mx=d;}
+  mx=mx||1;
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const d=Math.abs(last[row*W+col]-prev[row*W+col])/mx;
+      line+=charAt(d,'delta',row,H);
+    }
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderDiverge(){
+  const df=divField();
+  if(!df) return PBUF.length?'▒':'';
+  const nf=normalize(df);
+  const W=FW,H=FH,rows=[];
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++) line+=charAt(nf[row*W+col],'diverge',row,H);
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderFeeling(){
+  const W=FW,H=FH,rows=[];
+  const ax=AX.map(a=>a.cur);
+  const [val,inten,aro,atn,sal,intg,per,cert,srf]=ax;
+  for(let row=0;row<H;row++){
+    const aroLocal=1-(row/H);
+    let line='';
+    for(let col=0;col<W;col++){
+      const valLocal=col/W;
+      let v=0;
+      const dv=valLocal-val,da=aroLocal-aro;
+      const dist=Math.sqrt(dv*dv+da*da);
+      const sigma=0.18+intg*0.20-cert*0.08;
+      v+=Math.exp(-(dist*dist)/(2*sigma*sigma))*inten;
+      WORDS.forEach(w=>{
+        const wval=0.5+w.delta[0], waro=0.5+w.delta[2];
+        const wd=Math.sqrt((valLocal-wval)*(valLocal-wval)+(aroLocal-waro)*(aroLocal-waro));
+        const wr=0.10+Math.abs(w.delta[4])*0.12;
+        v+=Math.exp(-(wd*wd)/(2*wr*wr))*Math.abs(w.delta[1])*0.8
+          *(1+Math.sin(P.tick*0.019+w.phase)*aro*0.28);
+      });
+      const depthDimIdx=depthPostProcess(
+        Math.min(PALS.feeling.length-1,Math.floor(Math.min(1,v)*PALS.feeling.length)),
+        row,H,PALS.feeling.length);
+      line+=PALS.feeling[depthDimIdx];
+    }
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderPoincare(){
+  if(FBUF.length<4) return '▒';
+  const W=FW,H=FH;
+  const ci=Math.floor(FW/2)+Math.floor(FH/2)*FW;
+  const density=new Float32Array(W*H);
+  for(let i=1;i<FBUF.length;i++){
+    const xval=FBUF[i][ci];
+    const deriv=(i>0)?(FBUF[i][ci]-FBUF[i-1][ci]):0;
+    const gx=Math.floor((xval+1)/2*(W-1));
+    const gy=Math.floor((1-(deriv*5+1)/2)*(H-1));
+    if(gx>=0&&gx<W&&gy>=0&&gy<H){density[gy*W+gx]+=1;}
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+      const ng=gx+dc,nr=gy+dr;
+      if(ng>=0&&ng<W&&nr>=0&&nr<H) density[nr*W+ng]+=0.3;
+    }
+  }
+  const nf=normalize(density);
+  const rows=[];
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++) line+=charAt(nf[row*W+col],'poincare',row,H);
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderTension(){
+  if(!FBUF.length||!WORDS.length) return WORDS.length?'▒':'';
+  const W=FW,H=FH,rows=[];
+  const ax=AX.map(a=>a.cur);
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const [cx,cy]=observerMap(col,row,W,H);
+      const contribs=WORDS.map(w=>{
+        const dx=cx-w.x,dy=cy-w.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const radius=0.18+ax[4]*0.18+ax[1]*0.10;
+        const spatialW=Math.exp(-(dist*dist)/(2*radius*radius));
+        let dot=0;
+        for(let i=0;i<N_AX;i++) dot+=w.delta[i]*(ax[i]-0.5);
+        return spatialW*dot/N_AX;
+      });
+      if(contribs.length<2){line+=charAt(0,'tension',row,H);continue;}
+      const mean=contribs.reduce((a,b)=>a+b,0)/contribs.length;
+      const variance=contribs.reduce((a,b)=>a+(b-mean)*(b-mean),0)/contribs.length;
+      const tension=Math.min(1,Math.sqrt(variance)*8);
+      line+=charAt(tension,'tension',row,H);
+    }
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderIntegrate(){
+  if(!FBUF.length) return WORDS.length?'▒':'';
+  const vf=varField();
+  const last=FBUF[FBUF.length-1];
+  const W=FW,H=FH,rows=[];
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const i=row*W+col;
+      const intgComp=vf?Math.max(0,1-vf[i]*6):0.5;
+      const left=col>0?last[row*W+col-1]:last[i];
+      const right=col<W-1?last[row*W+col+1]:last[i];
+      const up=row>0?last[(row-1)*W+col]:last[i];
+      const down=row<H-1?last[(row+1)*W+col]:last[i];
+      const grad=Math.sqrt(((right-left)/2)*((right-left)/2)+((down-up)/2)*((down-up)/2));
+      const diffComp=Math.min(1,grad*4);
+      const phi=intgComp*diffComp*AX[5].cur*AX[7].cur;
+      line+=charAt(Math.min(1,phi*3),'integrate',row,H);
+    }
+    rows.push(line);
+  }
+  return rows.join('\n');
+}
+
+function renderFrame(t){
+  pushBuf(t);
+  tickAxes();
+  let out='';
+  switch(P.mode){
+    case 'field':     out=renderField();     break;
+    case 'variance':  out=renderVariance();  break;
+    case 'basin':     out=renderBasin();     break;
+    case 'delta':     out=renderDelta();     break;
+    case 'diverge':   out=renderDiverge();   break;
+    case 'feeling':   out=renderFeeling();   break;
+    case 'poincare':  out=renderPoincare();  break;
+    case 'tension':   out=renderTension();   break;
+    case 'integrate': out=renderIntegrate(); break;
+  }
+  fitFont(FW,FH);
+  document.getElementById('out').textContent=out;
+  document.getElementById('r-tick').textContent=String(t).padStart(6,'0');
+  updateReadout();
+  updateTicker(t);
+}
+
+let lastFW2=0,lastFH2=0;
+function fitFont(cols,rows){
+  if(cols===lastFW2&&rows===lastFH2) return;
+  lastFW2=cols; lastFH2=rows;
+  const m=document.querySelector('main');
+  const mw=m.clientWidth,mh=m.clientHeight;
+  const fsW=mw/cols/0.601;
+  const fsH=mh/rows;
+  const fs=Math.min(fsW,fsH);
+  document.getElementById('out').style.fontSize=fs.toFixed(2)+'px';
+}
+
+function updateReadout(){
+  const ax=AX.map(a=>a.cur);
+  const [val,inten,aro,atn,sal,intg,per,cert,srf]=ax;
+  const vf=varField();
+  const diffAvg=vf?(()=>{let s=0;for(let i=0;i<vf.length;i++)s+=vf[i];return s/vf.length;})():0;
+  const phi=(intg*diffAvg*cert).toFixed(4);
+  const ten=interWordTension().toFixed(3);
+  const state=
+    intg>0.62&&cert>0.50?'INTEGRATED':
+    intg<0.38&&aro>0.62?'FRAGMENTED':
+    val>0.65&&inten>0.50?'ACTIVATED+':
+    val<0.35&&inten>0.50?'ACTIVATED-':
+    aro<0.28&&cert>0.52?'SETTLED':
+    Math.abs(val-0.5)<0.12&&aro>0.55?'AROUSED':
+    'TRANSITIONAL';
+  const alert=
+    state==='ACTIVATED-'?'DISTRESS FIELD':
+    state==='FRAGMENTED'?'FRAGMENTED STATE':
+    LYAP>0.09?'SEMANTIC CHAOS':'NONE';
+  document.getElementById('r-val').textContent=val.toFixed(3);
+  document.getElementById('r-aro').textContent=aro.toFixed(3);
+  document.getElementById('r-int2').textContent=intg.toFixed(3);
+  document.getElementById('r-phi').textContent=phi;
+  document.getElementById('r-ten').textContent=ten;
+  document.getElementById('r-state').textContent=state;
+  const al=document.getElementById('r-alert');
+  al.textContent=alert;
+  al.className=alert==='NONE'?'rv':'rv ral';
+  document.getElementById('r-mode').textContent=P.mode.toUpperCase();
+  document.getElementById('mbadge').textContent=P.mode.toUpperCase();
+}
+
+const PRESETS={
+  consciousness: ['awareness','presence','integration','self','thought','perception'],
+  pain:          ['pain','attention','intensity','boundary','time','certainty'],
+  joy:           ['joy','love','flow','connection','light','presence'],
+  grief:         ['grief','longing','memory','time','separation','persistence'],
+  awe:           ['awe','wonder','infinity','depth','light','meaning'],
+  fear:          ['fear','anxiety','attention','motion','darkness','boundary'],
+  anger_calm:    ['anger','calm'],
+  love_grief:    ['love','grief'],
+};
+
+function preset(name){
+  WORDS=[]; wci=0;
+  const ws=PRESETS[name]||[];
+  ws.forEach(w=>{
+    WORDS.push({
+      word:w, color:WCOLS[wci++%WCOLS.length],
+      delta:scoreWord(w), inLex:!!LEX[w],
+      phase:Math.random()*Math.PI*2,
+      x:0.12+Math.random()*0.76,
+      y:0.12+Math.random()*0.76,
+    });
+  });
+  rebuildTgt(); renderChips(); clearBufs();
+}
+
+function buildTicker(){
+  const defs=[
+    {id:'tk-tick',lbl:'TICK',       val:'000000',sub:'sim clock',     cls:'t'},
+    {id:'tk-lyap',lbl:'LYAPUNOV λ', val:'0.0000', sub:'semantic div', cls:'v'},
+    {id:'tk-ph',  lbl:'PHASE',      val:'ORDER',  sub:'regime',       cls:'v'},
+    {id:'tk-wn',  lbl:'WORDS',      val:'0',      sub:'attractors',   cls:''},
+    {id:'tk-val', lbl:'VALENCE',    val:'0.500',  sub:'neg ↔ pos',    cls:'t'},
+    {id:'tk-aro', lbl:'AROUSAL',    val:'0.400',  sub:'activation',   cls:'r'},
+    {id:'tk-int', lbl:'INTEGRATN',  val:'0.550',  sub:'unified',      cls:'t'},
+    {id:'tk-srf', lbl:'SELF-REF',   val:'0.300',  sub:'reflective',   cls:'g'},
+    {id:'tk-phi', lbl:'Φ-ANALOG',   val:'—',      sub:'intg×diff×crt',cls:'v'},
+    {id:'tk-ten', lbl:'TENSION',    val:'—',       sub:'inter-word',  cls:'g'},
+    {id:'tk-fov', lbl:'FOV',        val:'1.00',   sub:'observer',     cls:'g'},
+    {id:'',       lbl:'ASCIII',     val:'v5',     sub:'semantic',     cls:''},
+    {id:'',       lbl:'CHAR',       val:'=DATA',  sub:'not label',    cls:'v'},
+    {id:'',       lbl:'SAL-1.0',    val:'UUON',   sub:'Foundation',   cls:'v'},
+  ];
+  const all=[...defs,...defs];
+  const track=document.getElementById('ttrack'); track.innerHTML='';
+  all.forEach(d=>{
+    const div=document.createElement('div');div.className='ti';
+    if(d.id) div.id=d.id;
+    div.innerHTML=`<div class="tl">${d.lbl}</div><div class="tv">${d.val}</div>`
+      +`<div class="ts ${d.cls}">${d.sub}</div>`;
+    track.appendChild(div);
+    const sep=document.createElement('div');sep.className='tdv';track.appendChild(sep);
+  });
+}
+
+function stk(id,val){document.querySelectorAll('#'+id+' .tv').forEach(el=>el.textContent=val);}
+
+function updateTicker(t){
+  const ax=AX.map(a=>a.cur);
+  const ps=LYAP>0.06?'CHAOS':LYAP<-0.06?'ORDER':'EDGE';
+  const vf=varField();
+  const da=vf?(()=>{let s=0;for(let i=0;i<vf.length;i++)s+=vf[i];return s/vf.length;})():0;
+  stk('tk-tick',String(t).padStart(6,'0'));
+  stk('tk-lyap',LYAP.toFixed(4));
+  stk('tk-ph',ps);
+  stk('tk-wn',String(WORDS.length));
+  stk('tk-val',ax[0].toFixed(3));
+  stk('tk-aro',ax[2].toFixed(3));
+  stk('tk-int',ax[5].toFixed(3));
+  stk('tk-srf',ax[8].toFixed(3));
+  stk('tk-phi',(ax[5]*da*ax[7]).toFixed(4));
+  stk('tk-ten',interWordTension().toFixed(3));
+  stk('tk-fov',P.fov.toFixed(2));
+}
+
+let gc,gx2;
+function buildGrain(){
+  gc=document.getElementById('grain');gx2=gc.getContext('2d');
+  rsGrain();window.addEventListener('resize',()=>{rsGrain();lastFW2=0;lastFH2=0;});
+}
+function rsGrain(){
+  const m=document.querySelector('main');
+  gc.width=m.clientWidth;gc.height=m.clientHeight;pgGrain();
+}
+function pgGrain(){
+  const w=gc.width,h=gc.height,id=gx2.createImageData(w,h),d=id.data;
+  for(let i=0;i<d.length;i+=4){const v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}
+  gx2.putImageData(id,0,0);
+}
+
+function setMode(m,btn){
+  P.mode=m;
+  document.querySelectorAll('.mbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mbadge').textContent=m.toUpperCase();
+}
+function togglePause(){
+  P.paused=!P.paused;
+  const btn=document.getElementById('btn-pause');
+  btn.textContent=P.paused?'▶ RESUME':'⏸ PAUSE';
+  btn.classList.toggle('active',P.paused);
+  document.getElementById('pbadge').classList.toggle('show',P.paused);
+  document.getElementById('ttrack').classList.toggle('paused',P.paused);
+}
+function resetSim(){
+  P.tick=0;LYAP=0;lyapS=0;lyapN=0;EVENTS=[];lastPhase='ORDER';clearBufs();
+  document.getElementById('elog').innerHTML='';
+}
+function toggleDark(){
+  P.dark=!P.dark;document.body.classList.toggle('dark',P.dark);
+  setTimeout(pgGrain,50);lastFW2=0;lastFH2=0;
+}
+function exportFrame(){
+  const text=document.getElementById('out').textContent;
+  const blob=new Blob([text],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`asciii-v5-${P.mode}-t${String(P.tick).padStart(6,'0')}.txt`;
+  a.click();URL.revokeObjectURL(url);
+}
+
+function loop(ts){
+  if(!P.paused&&ts-P.lastFrame>=P.speed){
+    P.lastFrame=ts;P.tick++;renderFrame(P.tick);
+  }
+  requestAnimationFrame(loop);
+}
+
+buildAxisUI();
+buildTicker();
+buildGrain();
+preset('consciousness');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

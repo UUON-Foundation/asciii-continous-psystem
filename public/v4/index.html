@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCIII v4 — Temporal Attractor Field</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ── */
+:root {
+  --bg:#f5f3ef; --bg2:#ece9e3; --bg3:#e4e0d9;
+  --border:rgba(0,0,0,0.09);
+  --text:rgba(0,0,0,0.88); --text2:rgba(0,0,0,0.44); --text3:rgba(0,0,0,0.20);
+  --teal:#00E5CC; --gold:#C9A84C; --violet:#7B5EA7;
+  --red:#E05A4E; --red2:#c23b2f; --redbg:rgba(224,90,78,0.07);
+  --canvas-bg:#efece6; --grain-op:0.050;
+}
+.dark {
+  --bg:#0a0a0a; --bg2:#111111; --bg3:#161616;
+  --border:rgba(255,255,255,0.07);
+  --text:rgba(255,255,255,0.88); --text2:rgba(255,255,255,0.42); --text3:rgba(255,255,255,0.16);
+  --canvas-bg:#060606; --grain-op:0.085;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);transition:background .25s,color .25s;}
+
+/* ── HEADER ── */
+header{position:fixed;top:0;left:0;right:0;z-index:200;height:44px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;}
+.logo{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.14em;color:var(--text);}
+.logo em{color:var(--red);font-style:normal;}
+.logo sup{color:var(--red);font-size:9px;vertical-align:super;opacity:.7;}
+.hdr-center{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.hbtn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.07em;background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;cursor:pointer;transition:color .15s,border-color .15s;}
+.hbtn:hover{color:var(--teal);border-color:var(--teal);}
+.hbtn.red{border-color:rgba(224,90,78,.5);color:var(--red);}
+.hbtn.red:hover{border-color:var(--red);background:var(--redbg);}
+.hbtn.active{color:var(--teal);border-color:var(--teal);background:rgba(0,229,204,.06);}
+.hbtn.danger:hover{color:var(--red);border-color:var(--red);}
+
+/* ── SHELL ── */
+.shell{position:fixed;top:44px;bottom:88px;left:0;right:0;display:flex;}
+
+/* ── SIDEBAR ── */
+aside{width:268px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;transition:background .25s;}
+aside::-webkit-scrollbar{width:3px;}
+aside::-webkit-scrollbar-thumb{background:var(--border);}
+.sb-sec{padding:12px 14px 14px;border-bottom:1px solid var(--border);}
+.sb-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.20em;text-transform:uppercase;color:var(--text3);margin-bottom:9px;display:block;}
+
+/* mode buttons */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+.mbtn{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 2px;background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;line-height:1.3;}
+.mbtn:hover{border-color:var(--teal);color:var(--teal);}
+.mbtn.active{border-color:var(--teal);color:var(--teal);background:rgba(0,229,204,.06);}
+.mbtn.red{border-color:rgba(224,90,78,.35);color:var(--red);}
+.mbtn.red.active,.mbtn.red:hover{border-color:var(--red);background:var(--redbg);}
+
+/* sliders */
+.ctrl-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ctrl-lbl{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:500;letter-spacing:.07em;color:var(--text2);text-transform:uppercase;}
+.ctrl-val{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--teal);min-width:48px;text-align:right;}
+.ctrl-val.red{color:var(--red);}
+input[type=range]{width:100%;-webkit-appearance:none;height:1px;background:var(--border);outline:none;margin-bottom:9px;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--teal);cursor:pointer;}
+input[type=range].red-thumb::-webkit-slider-thumb{background:var(--red);}
+
+/* attractor basin map */
+.basin-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-top:6px;}
+.basin-cell{aspect-ratio:1;border:1px solid var(--border);transition:background .4s;}
+
+/* Lyapunov readout */
+.lyap-bar-wrap{width:100%;height:4px;background:var(--border);margin:6px 0 2px;}
+.lyap-bar{height:4px;background:var(--teal);transition:width .3s,background .3s;}
+.lyap-bar.positive{background:var(--red);}   /* chaos */
+.lyap-bar.negative{background:var(--teal);}  /* order */
+
+/* phase event log */
+.event-log{font-family:'Share Tech Mono',monospace;font-size:8px;line-height:1.8;color:var(--text3);max-height:80px;overflow:hidden;}
+.event-log .ev-tick{color:var(--text3);}
+.event-log .ev-msg{color:var(--red);}
+.event-log .ev-msg.stable{color:var(--teal);}
+
+/* DAF */
+.daf-grid{display:flex;flex-direction:column;gap:4px;}
+.daf-row{display:flex;justify-content:space-between;align-items:center;font-family:'Share Tech Mono',monospace;font-size:9px;}
+.daf-name{color:var(--text3);letter-spacing:.1em;}
+.daf-val{color:var(--teal);}
+.daf-bar-wrap{flex:1;margin:0 8px;height:2px;background:var(--border);}
+.daf-bar{height:2px;background:var(--teal);transition:width .3s;}
+.daf-bar.drift{background:var(--gold);}
+.daf-bar.trap{background:var(--violet);}
+.daf-bar.brittle{background:var(--red);}
+
+/* readout */
+.readout{font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.9;}
+.readout .rkey{color:var(--text3);display:inline-block;width:72px;}
+.readout .rval{color:var(--teal);}
+.readout .rred{color:var(--red);}
+.readout .ralert{color:var(--red);}
+
+/* palette chips */
+.palette-grid{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.pchip{font-family:'Share Tech Mono',monospace;font-size:13px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);cursor:pointer;color:var(--text2);transition:all .12s;user-select:none;position:relative;}
+.pchip:hover,.pchip.active{border-color:var(--gold);color:var(--gold);}
+.pchip .ptip{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:8px;background:var(--bg3);border:1px solid var(--border);padding:2px 5px;color:var(--text2);white-space:nowrap;pointer-events:none;z-index:99;}
+.pchip:hover .ptip{display:block;}
+
+.export-btn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;width:100%;padding:7px 0;background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;margin-top:2px;transition:all .15s;}
+.export-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* ── MAIN ── */
+main{flex:1;position:relative;overflow:hidden;background:var(--canvas-bg);transition:background .25s;display:flex;align-items:center;justify-content:center;}
+#grain-canvas{position:absolute;inset:0;pointer-events:none;opacity:var(--grain-op);z-index:1;}
+#asciii-output{font-family:'Share Tech Mono',monospace;font-size:12.5px;line-height:1.46;color:var(--text);white-space:pre;user-select:text;position:relative;z-index:2;padding:22px 28px;max-width:100%;max-height:100%;overflow:auto;transition:color .25s;}
+#asciii-output::-webkit-scrollbar{width:3px;height:3px;}
+#asciii-output::-webkit-scrollbar-thumb{background:var(--border);}
+
+.corner-tag{position:absolute;bottom:11px;right:14px;z-index:10;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--text3);text-align:right;line-height:1.9;}
+.paused-badge{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:10;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.16em;color:var(--gold);border:1px solid var(--gold);padding:2px 10px;background:var(--bg2);display:none;}
+.paused-badge.show{display:block;}
+.version-badge{position:absolute;top:12px;right:14px;z-index:10;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--red);border:1px solid rgba(224,90,78,.4);padding:2px 8px;}
+
+/* ── TICKER ── */
+.ticker-strip{position:fixed;bottom:0;left:0;right:0;height:88px;background:var(--bg2);border-top:1px solid var(--border);overflow:hidden;display:flex;align-items:center;transition:background .25s;}
+.ticker-track{display:flex;gap:0;animation:tickscroll 44s linear infinite;white-space:nowrap;}
+.ticker-track.paused{animation-play-state:paused;}
+@keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tk-item{display:flex;flex-direction:column;gap:3px;min-width:148px;padding:0 24px 0 0;}
+.tk-lbl{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;}
+.tk-val{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;letter-spacing:.02em;color:var(--text);line-height:1;}
+.tk-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--teal);}
+.tk-sub.red{color:var(--red);}
+.tk-sub.gold{color:var(--gold);}
+.tk-div{width:1px;height:52px;background:var(--border);flex-shrink:0;margin-right:24px;align-self:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ASC<em>III</em><sup>T</sup> <span style="color:var(--text3);font-size:10px;margin-left:6px;">TEMPORAL ATTRACTOR FIELD</span></div>
+  <div class="hdr-center">UUON Foundation Inc. · UFM v0.5 · Lyapunov · State-Space Geometry · SAL-1.0</div>
+  <div class="hdr-right">
+    <button class="hbtn red" id="btn-rec" onclick="toggleRecord()">⏺ RECORD</button>
+    <button class="hbtn" id="btn-pause" onclick="togglePause()">⏸ PAUSE</button>
+    <button class="hbtn danger" onclick="resetSim()">↺ RESET</button>
+    <button class="hbtn" onclick="toggleDark()">◐ INVERT</button>
+  </div>
+</header>
+
+<div class="shell">
+<aside>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Render Mode — v4 EXCLUSIVE</span>
+    <div class="mode-grid">
+      <!-- v4 new modes — time as geometry -->
+      <button class="mbtn red active" onclick="setMode('attractor',this)">ATTRACTOR</button>
+      <button class="mbtn red" onclick="setMode('trajectory',this)">TRAJECTORY</button>
+      <button class="mbtn red" onclick="setMode('lyapunov',this)">LYAPUNOV</button>
+      <button class="mbtn red" onclick="setMode('basin',this)">BASIN</button>
+      <button class="mbtn red" onclick="setMode('poincare',this)">POINCARÉ</button>
+      <button class="mbtn red" onclick="setMode('delta',this)">ΔFIELD</button>
+      <!-- inherited v1 modes -->
+      <button class="mbtn" onclick="setMode('field',this)">FIELD</button>
+      <button class="mbtn" onclick="setMode('topology',this)">TOPO</button>
+      <button class="mbtn" onclick="setMode('compress',this)">COMPRESS</button>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Temporal Buffer</span>
+    <div class="ctrl-row"><span class="ctrl-lbl">Buffer Depth</span><span class="ctrl-val red" id="v-bufDepth">64</span></div>
+    <input type="range" class="red-thumb" min="16" max="256" value="64" oninput="setParam('bufDepth',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">Time Step</span><span class="ctrl-val red" id="v-tStep">8</span></div>
+    <input type="range" class="red-thumb" min="1" max="32" value="8" oninput="setParam('tStep',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">Divergence</span><span class="ctrl-val red" id="v-divScale">1.00</span></div>
+    <input type="range" class="red-thumb" min="10" max="300" value="100" oninput="setParam('divScale',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Phase Threshold</span><span class="ctrl-val red" id="v-phaseThresh">0.18</span></div>
+    <input type="range" class="red-thumb" min="5" max="60" value="18" oninput="setParam('phaseThresh',this.value/100)">
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Field Parameters</span>
+    <div class="ctrl-row"><span class="ctrl-lbl">Density</span><span class="ctrl-val" id="v-density">0.62</span></div>
+    <input type="range" min="5" max="100" value="62" oninput="setParam('density',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Resolution</span><span class="ctrl-val" id="v-resolution">38</span></div>
+    <input type="range" min="12" max="64" value="38" oninput="setParam('resolution',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">Frequency</span><span class="ctrl-val" id="v-frequency">0.38</span></div>
+    <input type="range" min="5" max="95" value="38" oninput="setParam('frequency',this.value/100)">
+    <div class="ctrl-row"><span class="ctrl-lbl">Tick Speed</span><span class="ctrl-val" id="v-speed">80ms</span></div>
+    <input type="range" min="20" max="500" value="80" oninput="setParam('speed',parseInt(this.value))">
+    <div class="ctrl-row"><span class="ctrl-lbl">UFM Nodes</span><span class="ctrl-val" id="v-ufmCount">12</span></div>
+    <input type="range" min="4" max="32" value="12" oninput="setParam('ufmCount',parseInt(this.value));rebuildGraph()">
+    <div class="ctrl-row"><span class="ctrl-lbl">Perturbation</span><span class="ctrl-val red" id="v-perturbation">0.00</span></div>
+    <input type="range" class="red-thumb" min="0" max="80" value="0" oninput="setParam('perturbation',this.value/100)">
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Lyapunov Exponent</span>
+    <div class="lyap-bar-wrap"><div class="lyap-bar" id="lyap-bar" style="width:50%"></div></div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;display:flex;justify-content:space-between;color:var(--text3);">
+      <span>ORDER</span><span id="lyap-val" style="color:var(--teal)">0.000</span><span>CHAOS</span>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Phase Event Log</span>
+    <div class="event-log" id="event-log"></div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">DAF State Distribution</span>
+    <div class="daf-grid">
+      <div class="daf-row"><span class="daf-name">CIRC</span><div class="daf-bar-wrap"><div class="daf-bar" id="daf-circ" style="width:70%"></div></div><span class="daf-val" id="dv-circ">—</span></div>
+      <div class="daf-row"><span class="daf-name">DRIFT</span><div class="daf-bar-wrap"><div class="daf-bar drift" id="daf-drift" style="width:20%"></div></div><span class="daf-val" id="dv-drift">—</span></div>
+      <div class="daf-row"><span class="daf-name">TRAP</span><div class="daf-bar-wrap"><div class="daf-bar trap" id="daf-trap" style="width:7%"></div></div><span class="daf-val" id="dv-trap">—</span></div>
+      <div class="daf-row"><span class="daf-name">BRITTLE</span><div class="daf-bar-wrap"><div class="daf-bar brittle" id="daf-brit" style="width:3%"></div></div><span class="daf-val" id="dv-brit">—</span></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Character Palette</span>
+    <div class="palette-grid" id="palette-grid"></div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Live Readout</span>
+    <div class="readout">
+      <div><span class="rkey">tick      </span><span class="rval" id="r-tick">000000</span></div>
+      <div><span class="rkey">mode      </span><span class="rval" id="r-mode">ATTRACTOR</span></div>
+      <div><span class="rkey">buf depth </span><span class="rred" id="r-bufdepth">—</span></div>
+      <div><span class="rkey">lyapunov  </span><span class="rred" id="r-lyap">—</span></div>
+      <div><span class="rkey">phase dim </span><span class="rred" id="r-pdim">—</span></div>
+      <div><span class="rkey">divergence</span><span class="rred" id="r-div">—</span></div>
+      <div><span class="rkey">energy    </span><span class="rval" id="r-energy">—</span></div>
+      <div><span class="rkey">entropy   </span><span class="rval" id="r-entropy">—</span></div>
+      <div><span class="rkey">recording </span><span class="rred" id="r-rec">OFF</span></div>
+      <div><span class="rkey">alert     </span><span class="rval ralert" id="r-alert">NONE</span></div>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <span class="sb-lbl">Export</span>
+    <button class="export-btn" onclick="exportTXT()">↓ EXPORT .TXT FRAME</button>
+    <button class="export-btn" style="margin-top:5px" onclick="exportTrajectory()">↓ EXPORT TRAJECTORY</button>
+    <button class="export-btn" style="margin-top:5px;border-color:rgba(224,90,78,.4);color:var(--red)" onclick="exportAttractorMap()">↓ EXPORT ATTRACTOR MAP</button>
+  </div>
+
+</aside>
+
+<main>
+  <canvas id="grain-canvas"></canvas>
+  <pre id="asciii-output"></pre>
+  <div class="paused-badge" id="paused-badge">⏸ PAUSED</div>
+  <div class="version-badge">TIME → GEOMETRY · v4</div>
+  <div class="corner-tag">ASCIII v4 · Temporal Attractor<br>Phillip Aguilar Ruiz III<br>UUON Foundation Inc.</div>
+</main>
+</div>
+
+<div class="ticker-strip">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════════════
+// ASCIII v4 — TEMPORAL ATTRACTOR FIELD
+//
+// The missing layer across v1–v3: time as a geometric object.
+// v1–v3 render the state that exists NOW.
+// v4 renders what the system IS BECOMING — the shape it traces through
+// state-space over time. That shape is the attractor.
+//
+// Core insight: if you record the field energy at every cell across N ticks
+// and treat the sequence as a vector in high-dimensional space, you get a
+// trajectory. That trajectory converges toward a geometric object — the
+// attractor. The Lyapunov exponent measures how fast nearby trajectories
+// diverge. Positive = chaotic (sensitive to initial conditions).
+// Negative = ordered (converging). Zero = at a bifurcation boundary.
+//
+// The ASCIII character at position (x,y) in ATTRACTOR mode encodes not
+// the field value at this tick, but the VARIANCE of the field value at
+// that position across the last N ticks. High variance = chaotic region.
+// Low variance = ordered region. The character is the compressed signature
+// of temporal behavior at that point in space.
+//
+// This is a genuinely new thing: the character encodes time, not state.
+//
+// Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0
+// ═══════════════════════════════════════════════════════════════════════════
+
+const S = {
+  dark:false, paused:false, mode:'attractor', tick:0, lastFrame:0,
+  density:0.62, resolution:38, frequency:0.38, speed:80,
+  ufmCount:12, stateLog:[], recording:false,
+  // v4 temporal parameters
+  bufDepth:64,       // how many ticks to keep in the rolling buffer
+  tStep:8,           // sample every N ticks into buffer
+  divScale:1.0,      // divergence amplification
+  phaseThresh:0.18,  // threshold for phase transition detection
+  perturbation:0.0,  // external noise injection (butterfly effect lever)
+};
+
+// ── CHARACTER PALETTES ────────────────────────────────────────────────────
+const PALETTES = {
+  // temporal palettes — encode variance/divergence, not density
+  variance: [' ','·','─','╌','≈','≋','▒','▓','█','✕'],  // order→chaos
+  diverge:  [' ','˙','·','∘','○','◎','●','◉','◈','✕'],  // convergent→divergent
+  attractor:[' ','·','∙','∘','○','◎','●','◉','◉','●'],  // basin topology
+  orbit:    [' ','·','-','~','≋','○','◎','●','◉','✕'],  // orbital stability
+  // standard palettes (inherited)
+  density:  [' ','·','░','▒','▓','█'],
+  symbolic: [' ','·','◦','○','◎','●'],
+  topology: [' ','─','│','┼','╬','█'],
+  wave:     [' ','˙','~','≈','≋','▓'],
+};
+const PAL_NAMES = Object.keys(PALETTES);
+let activePal = 'variance';
+
+// ── TEMPORAL BUFFER ───────────────────────────────────────────────────────
+// The core data structure of v4. A rolling buffer of field snapshots.
+// Each snapshot is a 1D array of energy values at every (col,row) cell.
+// The buffer grows until bufDepth, then slides forward.
+// This buffer IS the attractor — or rather, it is the trajectory that
+// traces toward the attractor.
+
+let FIELD_BUFFER = [];      // array of Float32Array snapshots
+let FIELD_W = 0, FIELD_H = 0;
+let PERTURBED_BUFFER = [];  // shadow trajectory for Lyapunov computation
+
+// Lyapunov running estimate
+let LYAPUNOV = 0.0;
+let lyapSum = 0, lyapCount = 0;
+
+// Phase event log
+let EVENTS = [];
+let lastPhaseState = 'ORDER';
+
+// Trajectory record (for export)
+let TRAJECTORY = [];
+let RECORDING = false;
+
+// ── UFM FIGURE ────────────────────────────────────────────────────────────
+const DAF = {CIRC:'CIRCULATING',DRIFT:'DRIFT',TRAP:'TRAP',BRIT:'BRITTLE'};
+
+class UFMFigure {
+  constructor(id, x, y) {
+    this.id=id;
+    this.P={origin:id,birth:0,anchor:{x,y}};
+    this.E={value:Math.random(),phase:Math.random()*Math.PI*2,age:0};
+    this.R={edges:[],transfer:0};
+    this.C={ratio:0,symbol:' ',daf:DAF.CIRC};
+    this.x=x; this.y=y;
+    // v4: temporal trace — last N energy values for this node
+    this.temporalTrace=[];
+  }
+  step(t, perturbation=0) {
+    this.E.age++;
+    const noise = perturbation > 0 ? (Math.random()-0.5)*perturbation*0.3 : 0;
+    this.E.value=(Math.sin(t*0.018+this.E.phase)*0.45+0.55)*S.density + noise;
+    this.E.value=Math.max(0,Math.min(1,this.E.value));
+    this.R.transfer=this.R.edges.reduce((acc,e)=>acc+Math.sin(t*0.013+e.phase)*e.weight*0.5,0);
+    const conf=Math.abs(Math.sin(t*0.022+this.E.phase));
+    if(conf>0.72)this.C.daf=DAF.CIRC;
+    else if(conf>0.48)this.C.daf=DAF.DRIFT;
+    else if(conf>0.25)this.C.daf=DAF.TRAP;
+    else this.C.daf=DAF.BRIT;
+    this.C.ratio=1-this.E.value;
+    const chars=PALETTES[activePal];
+    this.C.symbol=chars[Math.min(chars.length-1,Math.floor(this.E.value*chars.length))];
+    // update temporal trace
+    this.temporalTrace.push(this.E.value);
+    if(this.temporalTrace.length > S.bufDepth) this.temporalTrace.shift();
+  }
+}
+
+let GRAPH={nodes:[],edges:[]};
+function rebuildGraph(){
+  const n=S.ufmCount,nodes=[],edges=[];
+  for(let i=0;i<n;i++){
+    const angle=(i/n)*Math.PI*2,r=0.35+(i%3)*0.1;
+    nodes.push(new UFMFigure(i,0.5+Math.cos(angle)*r,0.5+Math.sin(angle)*r*0.55));
+  }
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    const e={a:i,b:j,weight:0.5+Math.random()*0.5,phase:Math.random()*Math.PI*2};
+    edges.push(e);nodes[i].R.edges.push(e);nodes[j].R.edges.push(e);
+  }
+  for(let i=0;i<Math.floor(n/3);i++){
+    const a=Math.floor(Math.random()*n),b=Math.floor(Math.random()*n);
+    if(a!==b){const e={a,b,weight:0.3+Math.random()*0.4,phase:Math.random()*Math.PI*2};edges.push(e);nodes[a].R.edges.push(e);nodes[b].R.edges.push(e);}
+  }
+  GRAPH={nodes,edges};
+  FIELD_BUFFER=[];PERTURBED_BUFFER=[];LYAPUNOV=0;lyapSum=0;lyapCount=0;
+}
+rebuildGraph();
+
+// ── CORE WAVE + FIELD SAMPLING ────────────────────────────────────────────
+function wave(x,y,t){
+  const f=S.frequency;
+  return(
+    Math.sin(x*f+t*.71)*Math.cos(y*f*.83+t*.53)+
+    Math.sin(x*f*1.31-y*f*.62+t*.29)*.5+
+    Math.cos((x+y)*f*.47+t*.91)*.25
+  )/1.75;
+}
+
+function sampleField(t, perturbation=0) {
+  const W=S.resolution, H=Math.max(6,Math.floor(W*0.42));
+  FIELD_W=W; FIELD_H=H;
+  const snap=new Float32Array(W*H);
+  for(let row=0;row<H;row++){
+    for(let col=0;col<W;col++){
+      const x=(col/W)*6.2832,y=(row/H)*6.2832;
+      const noise=perturbation>0?(Math.random()-0.5)*perturbation*0.15:0;
+      let v=wave(x,y,t*0.014)*S.density + noise;
+      GRAPH.nodes.forEach(nd=>{
+        const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<0.15)v+=nd.E.value*(1-d/0.15)*0.4;
+      });
+      snap[row*W+col]=Math.max(-1,Math.min(1,v));
+    }
+  }
+  return snap;
+}
+
+// ── TEMPORAL BUFFER MANAGEMENT ────────────────────────────────────────────
+function pushBuffer(t) {
+  if(t % S.tStep !== 0) return;
+  const snap = sampleField(t, 0);
+  FIELD_BUFFER.push(snap);
+  if(FIELD_BUFFER.length > S.bufDepth) FIELD_BUFFER.shift();
+
+  // shadow trajectory: same field + tiny perturbation
+  const snapP = sampleField(t, S.perturbation + 0.001);
+  PERTURBED_BUFFER.push(snapP);
+  if(PERTURBED_BUFFER.length > S.bufDepth) PERTURBED_BUFFER.shift();
+
+  // update Lyapunov estimate
+  updateLyapunov(snap, snapP);
+
+  // record trajectory if active
+  if(RECORDING){
+    const avgE = snap.reduce((a,b)=>a+Math.abs(b),0)/snap.length;
+    TRAJECTORY.push({t, avgE, lyap:LYAPUNOV});
+  }
+}
+
+function updateLyapunov(snap, snapP) {
+  if(!snap||!snapP||snap.length!==snapP.length) return;
+  // Lyapunov exponent: measure divergence rate between trajectories
+  let dist=0;
+  for(let i=0;i<snap.length;i++) dist+=Math.pow(snap[i]-snapP[i],2);
+  dist=Math.sqrt(dist/snap.length);
+  if(dist>0&&FIELD_BUFFER.length>2){
+    const prevSnap=FIELD_BUFFER[FIELD_BUFFER.length-2];
+    const prevSnapP=PERTURBED_BUFFER[PERTURBED_BUFFER.length-2];
+    let prevDist=0;
+    if(prevSnap&&prevSnapP){
+      for(let i=0;i<prevSnap.length;i++) prevDist+=Math.pow(prevSnap[i]-prevSnapP[i],2);
+      prevDist=Math.sqrt(prevDist/prevSnap.length);
+    }
+    if(prevDist>0) {
+      const instantLyap=Math.log(dist/prevDist)*S.divScale;
+      lyapSum+=instantLyap; lyapCount++;
+      LYAPUNOV=lyapSum/lyapCount;
+    }
+  }
+  // phase detection
+  const newState=LYAPUNOV>S.phaseThresh?'CHAOS':LYAPUNOV<-S.phaseThresh?'ORDER':'EDGE';
+  if(newState!==lastPhaseState){
+    logEvent(S.tick, newState, lastPhaseState);
+    lastPhaseState=newState;
+  }
+  // update UI
+  const lyapNorm=Math.max(0,Math.min(1,(LYAPUNOV+0.5)));
+  const bar=document.getElementById('lyap-bar');
+  bar.style.width=(lyapNorm*100).toFixed(1)+'%';
+  bar.className='lyap-bar '+(LYAPUNOV>0.05?'positive':LYAPUNOV<-0.05?'negative':'');
+  document.getElementById('lyap-val').textContent=LYAPUNOV.toFixed(4);
+}
+
+function logEvent(t,newState,oldState){
+  EVENTS.unshift({t,msg:oldState+'→'+newState,chaos:newState==='CHAOS'});
+  if(EVENTS.length>6)EVENTS.pop();
+  const log=document.getElementById('event-log');
+  log.innerHTML=EVENTS.map(e=>`<div><span class="ev-tick">t=${String(e.t).padStart(6,'0')} </span><span class="ev-msg${e.chaos?'':' stable'}">${e.msg}</span></div>`).join('');
+}
+
+// ── VARIANCE FIELD: the attractor surface ─────────────────────────────────
+// For each cell, compute variance across all buffered snapshots.
+// This is the core of the ATTRACTOR mode — not the field, but the
+// temporal behavior of the field at each point.
+function computeVarianceField() {
+  if(FIELD_BUFFER.length<2) return null;
+  const W=FIELD_W,H=FIELD_H,n=FIELD_BUFFER.length;
+  const varField=new Float32Array(W*H);
+  for(let i=0;i<W*H;i++){
+    let sum=0,sum2=0;
+    for(let t=0;t<n;t++){sum+=FIELD_BUFFER[t][i];sum2+=FIELD_BUFFER[t][i]*FIELD_BUFFER[t][i];}
+    const mean=sum/n;
+    varField[i]=Math.sqrt(Math.max(0,sum2/n-mean*mean));
+  }
+  return varField;
+}
+
+// ── AUTOCORRELATION: how much does the field remember itself? ─────────────
+function computeAutocorr(lag=1) {
+  if(FIELD_BUFFER.length<=lag) return 0;
+  const n=FIELD_BUFFER.length,W=FIELD_W,H=FIELD_H;
+  let cov=0,var0=0;
+  const sz=W*H;
+  for(let i=0;i<sz;i++){
+    const a=FIELD_BUFFER[n-1][i],b=FIELD_BUFFER[n-1-lag][i];
+    cov+=a*b; var0+=a*a;
+  }
+  return var0>0?Math.max(-1,Math.min(1,cov/var0)):0;
+}
+
+// ── DIVERGENCE FIELD: how fast does each cell diverge? ───────────────────
+function computeDivergenceField() {
+  if(FIELD_BUFFER.length<2||PERTURBED_BUFFER.length<2) return null;
+  const W=FIELD_W,H=FIELD_H;
+  const divField=new Float32Array(W*H);
+  const last=FIELD_BUFFER.length-1;
+  for(let i=0;i<W*H;i++){
+    const d=Math.abs(FIELD_BUFFER[last][i]-PERTURBED_BUFFER[last][i]);
+    divField[i]=Math.min(1,d*S.divScale*8);
+  }
+  return divField;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function charForVal(v) {
+  const chars=PALETTES[activePal];
+  const norm=Math.max(0,Math.min(1,v));
+  return chars[Math.min(chars.length-1,Math.floor(norm*chars.length))];
+}
+function charForField(v) {
+  const chars=PALETTES[activePal];
+  const norm=Math.max(0,Math.min(1,(v+1)/2));
+  return chars[Math.min(chars.length-1,Math.floor(norm*chars.length))];
+}
+function bar(r,w,ch='█',bg='░'){const f=Math.round(r*w);return ch.repeat(f)+bg.repeat(w-f);}
+function pn(n,d=4){return String(n).padStart(d,'0');}
+function dafStats(){
+  const c={CIRCULATING:0,DRIFT:0,TRAP:0,BRITTLE:0};
+  GRAPH.nodes.forEach(n=>{c[n.C.daf]=(c[n.C.daf]||0)+1;});
+  const t=GRAPH.nodes.length||1;
+  return{circ:c.CIRCULATING/t,drift:c.DRIFT/t,trap:c.TRAP/t,brittle:c.BRITTLE/t};
+}
+function fieldEnergy(){
+  if(!FIELD_BUFFER.length)return 0;
+  const last=FIELD_BUFFER[FIELD_BUFFER.length-1];
+  return last.reduce((a,b)=>a+Math.abs(b),0)/last.length;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// V4 RENDERERS — time as geometry
+// ═══════════════════════════════════════════════════════════════════════════
+
+/* ATTRACTOR — variance field: the temporal shape of the system */
+function renderAttractor(t) {
+  const varField=computeVarianceField();
+  const W=FIELD_W,H=FIELD_H;
+  const lines=[];
+  const lyapState=LYAPUNOV>S.phaseThresh?'CHAOTIC':LYAPUNOV<-S.phaseThresh?'ORDERED':'EDGE OF CHAOS';
+  const autocorr=computeAutocorr(4);
+
+  lines.push('ASCIII⁴·ATTRACTOR  t='+pn(t,6)+'  buf='+FIELD_BUFFER.length+'/'+S.bufDepth);
+  lines.push('Character encodes TEMPORAL VARIANCE — not current state, but change over time');
+  lines.push('Phase: '+lyapState+'  ·  λ='+LYAPUNOV.toFixed(5)+'  ·  autocorr(4)='+autocorr.toFixed(4));
+  lines.push('');
+
+  if(!varField || FIELD_BUFFER.length<4){
+    lines.push('  Filling temporal buffer…');
+    lines.push('  '+bar(FIELD_BUFFER.length/S.bufDepth,40,'▒','·')+' '+FIELD_BUFFER.length+'/'+S.bufDepth);
+    lines.push('');
+    lines.push('  The attractor emerges as the buffer fills.');
+    lines.push('  Each tick deposits a field snapshot.');
+    lines.push('  When full, variance across all snapshots renders here.');
+  } else {
+    // Find max variance for normalization
+    let maxVar=0;
+    for(let i=0;i<varField.length;i++) maxVar=Math.max(maxVar,varField[i]);
+    maxVar=maxVar||1;
+
+    let totalVar=0;
+    for(let row=0;row<H;row++){
+      let line='';
+      for(let col=0;col<W;col++){
+        const v=varField[row*W+col]/maxVar; // normalize to [0,1]
+        totalVar+=v;
+        line+=charForVal(v);
+      }
+      lines.push(line);
+    }
+    const avgVar=(totalVar/(W*H)).toFixed(5);
+    const pdim=(1+Math.abs(LYAPUNOV)*2).toFixed(4); // rough phase dim estimate
+    lines.push('');
+    lines.push('avg variance: '+avgVar+'  ·  phase dim est: '+pdim+'  ·  buf: '+FIELD_BUFFER.length+' frames');
+    lines.push('ORDER zone ['+charForVal(0.1)+'] → EDGE ['+charForVal(0.5)+'] → CHAOS ['+charForVal(0.9)+']');
+
+    const energy=fieldEnergy().toFixed(5);
+    const entropy=(parseFloat(avgVar)*Math.log(W*H+1)).toFixed(5);
+    updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim,div:avgVar,energy,entropy,rec:RECORDING?'ACTIVE':'OFF',alert:lyapState==='CHAOTIC'?'CHAOS DETECTED':lyapState==='EDGE OF CHAOS'?'BIFURCATION EDGE':'NONE'});
+  }
+  updateDAFBars(dafStats());
+  return lines.join('\n');
+}
+
+/* TRAJECTORY — show the path the system took through state-space */
+function renderTrajectory(t) {
+  if(FIELD_BUFFER.length<3){
+    return 'ASCIII⁴·TRAJECTORY  t='+pn(t,6)+'\n\nBuilding trajectory buffer…\n'+bar(FIELD_BUFFER.length/S.bufDepth,40,'─','·')+' '+FIELD_BUFFER.length+' frames';
+  }
+  const W=FIELD_W,H=Math.min(FIELD_H,8);
+  // Treat time as horizontal axis, space as vertical axis
+  // Each column = one buffered snapshot, each row = one spatial position
+  // (we sample S.resolution positions across the field)
+  const lines=[];
+  const bufLen=FIELD_BUFFER.length;
+  const displayCols=Math.min(bufLen,70);
+  const step=Math.max(1,Math.floor(bufLen/displayCols));
+
+  lines.push('ASCIII⁴·TRAJECTORY  t='+pn(t,6)+'  time→right  space↓');
+  lines.push('Each column = one field snapshot  ·  Each row = spatial position');
+  lines.push('Reading left→right traces the system\'s path through state-space');
+  lines.push('');
+  lines.push('  ←── past'+' '.repeat(Math.max(0,displayCols-14))+'present ──→');
+  lines.push('');
+
+  // Sample H spatial positions evenly across the field
+  for(let row=0;row<H;row++){
+    const spatialIdx=Math.floor((row/H)*W*Math.floor(W*0.42));
+    let line='  │';
+    for(let col=0;col<displayCols;col++){
+      const bufIdx=Math.floor(col*step);
+      if(bufIdx<bufLen){
+        const v=(FIELD_BUFFER[bufIdx][spatialIdx]+1)/2;
+        line+=charForVal(v);
+      } else line+=' ';
+    }
+    line+='│';
+    lines.push(line);
+  }
+  lines.push('');
+
+  // Show divergence between main and perturbed trajectory
+  lines.push('  DIVERGENCE FROM PERTURBED TWIN (Lyapunov shadow):');
+  lines.push('  │');
+  let divLine='  │';
+  for(let col=0;col<displayCols;col++){
+    const bufIdx=Math.floor(col*step);
+    if(bufIdx<FIELD_BUFFER.length&&bufIdx<PERTURBED_BUFFER.length){
+      let d=0;
+      for(let i=0;i<Math.min(4,FIELD_W*FIELD_H);i++){
+        d+=Math.abs(FIELD_BUFFER[bufIdx][i]-PERTURBED_BUFFER[bufIdx][i]);
+      }
+      d=Math.min(1,d*S.divScale*4);
+      divLine+=charForVal(d);
+    } else divLine+=' ';
+  }
+  divLine+='│';
+  lines.push(divLine);
+  lines.push('  small divergence=ORDER  large divergence=CHAOS  λ='+LYAPUNOV.toFixed(4));
+  lines.push('');
+
+  // Autocorrelation at multiple lags
+  lines.push('  AUTOCORRELATION:');
+  lines.push('  lag-1: '+bar(Math.max(0,computeAutocorr(1)),20)+'  '+(computeAutocorr(1)*100).toFixed(0)+'%  (memory)');
+  lines.push('  lag-4: '+bar(Math.max(0,computeAutocorr(4)),20)+'  '+(computeAutocorr(4)*100).toFixed(0)+'%');
+  lines.push('  lag-8: '+bar(Math.max(0,computeAutocorr(8)),20)+'  '+(computeAutocorr(8)*100).toFixed(0)+'%');
+
+  const energy=fieldEnergy().toFixed(5);
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:(1+Math.abs(LYAPUNOV)*2).toFixed(4),div:computeAutocorr(1).toFixed(4),energy,entropy:(parseFloat(energy)*Math.log(W*H)).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:LYAPUNOV>S.phaseThresh?'CHAOS':'NONE'});
+  updateDAFBars(dafStats());
+  return lines.join('\n');
+}
+
+/* LYAPUNOV — spatial map of local divergence rates */
+function renderLyapunov(t) {
+  const divField=computeDivergenceField();
+  const W=FIELD_W,H=FIELD_H;
+  const lines=[];
+
+  lines.push('ASCIII⁴·LYAPUNOV  t='+pn(t,6)+'  LOCAL DIVERGENCE MAP');
+  lines.push('Character encodes HOW FAST each spatial position diverges from its twin');
+  lines.push('Global λ='+LYAPUNOV.toFixed(6)+'  ·  '+
+    (LYAPUNOV>0.05?'POSITIVE (chaos)':LYAPUNOV<-0.05?'NEGATIVE (order)':'NEAR ZERO (bifurcation boundary)'));
+  lines.push('');
+
+  if(!divField||PERTURBED_BUFFER.length<2){
+    lines.push('  Building perturbed trajectory…');
+    lines.push('  Perturbation: '+(S.perturbation>0?S.perturbation.toFixed(3):'auto (ε=0.001)'));
+    lines.push('  '+bar(PERTURBED_BUFFER.length/S.bufDepth,40,'·',' ')+' '+PERTURBED_BUFFER.length+' frames');
+  } else {
+    let totalDiv=0;
+    for(let row=0;row<H;row++){
+      let line='';
+      for(let col=0;col<W;col++){
+        const v=divField[row*W+col];
+        totalDiv+=v;
+        line+=charForVal(v);
+      }
+      lines.push(line);
+    }
+    const avgDiv=(totalDiv/(W*H)).toFixed(5);
+    lines.push('');
+    lines.push('avg divergence: '+avgDiv+'  ·  scale: '+S.divScale.toFixed(2)+'×');
+    lines.push('bright=high divergence (chaos)  dark=low divergence (order)');
+    lines.push('');
+    lines.push('PHASE MAP:');
+    const bins=[0,0,0]; // order, edge, chaos
+    for(let i=0;i<divField.length;i++){
+      if(divField[i]<0.3)bins[0]++;
+      else if(divField[i]<0.6)bins[1]++;
+      else bins[2]++;
+    }
+    const total=divField.length;
+    lines.push('  ORDER  '+bar(bins[0]/total,20)+'  '+(bins[0]/total*100).toFixed(0)+'%');
+    lines.push('  EDGE   '+bar(bins[1]/total,20)+'  '+(bins[1]/total*100).toFixed(0)+'%');
+    lines.push('  CHAOS  '+bar(bins[2]/total,20)+'  '+(bins[2]/total*100).toFixed(0)+'%');
+
+    const energy=fieldEnergy().toFixed(5);
+    updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:(bins[2]/total*3+1).toFixed(3),div:avgDiv,energy,entropy:(parseFloat(avgDiv)*Math.log(total)).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:LYAPUNOV>S.phaseThresh?'CHAOS ZONE':'NONE'});
+  }
+  updateDAFBars(dafStats());
+  return lines.join('\n');
+}
+
+/* BASIN — attractor basin topology: which regions are drawn to the same state */
+function renderBasin(t) {
+  const W=FIELD_W,H=FIELD_H;
+  const lines=[];
+
+  lines.push('ASCIII⁴·BASIN  t='+pn(t,6)+'  ATTRACTOR BASIN TOPOLOGY');
+  lines.push('Regions sharing the same long-term behavior cluster into basins');
+  lines.push('Basin boundary = sensitive zone = edge of chaos');
+  lines.push('');
+
+  if(FIELD_BUFFER.length<8){
+    lines.push('  Need more temporal data… '+FIELD_BUFFER.length+'/'+S.bufDepth);
+    updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:'—',div:'—',energy:'—',entropy:'—',rec:RECORDING?'ACTIVE':'OFF',alert:'NONE'});
+    updateDAFBars(dafStats());
+    return lines.join('\n');
+  }
+
+  // Basin detection: cluster cells by their temporal signature
+  // Use variance + autocorrelation as 2D fingerprint per cell
+  // Cells with similar fingerprints are in the same basin
+  const varField=computeVarianceField();
+  const divField=computeDivergenceField();
+  const basinChars=['·','∘','○','◎','●','◉','◈','◆','▪','█'];
+
+  let totalBoundary=0;
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const i=row*W+col;
+      const vari=varField?varField[i]:0;
+      const divi=divField?divField[i]:0;
+      // Combined fingerprint determines basin
+      const fingerprint=(vari+divi)/2;
+      // Basin boundary cells have high variance AND high divergence
+      const isBoundary=vari>0.3&&divi>0.3;
+      if(isBoundary){totalBoundary++;line+='✕';}
+      else{line+=charForVal(fingerprint);}
+    }
+    lines.push(line);
+  }
+  const boundaryPct=(totalBoundary/(W*H)*100).toFixed(1);
+  lines.push('');
+  lines.push('basin boundary cells: '+boundaryPct+'%  [✕]  ← sensitive zones');
+  lines.push('interior cells show basin convergence depth (dark=deep, light=shallow)');
+  lines.push('');
+  lines.push('λ='+LYAPUNOV.toFixed(4)+'  multiple basins='+(LYAPUNOV>0?'YES (chaotic)':'NO (simple attractor)'));
+
+  const energy=fieldEnergy().toFixed(5);
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:(1+parseFloat(boundaryPct)/50).toFixed(3),div:(totalBoundary/(W*H)).toFixed(4),energy,entropy:(parseFloat(energy)*Math.log(W*H)).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:parseFloat(boundaryPct)>20?'COMPLEX BASIN BOUNDARY':'NONE'});
+  updateDAFBars(dafStats());
+  return lines.join('\n');
+}
+
+/* POINCARÉ — cross-section of the attractor at a fixed spatial position */
+function renderPoincare(t) {
+  const W=64,H=22;
+  const G=Array.from({length:H},()=>Array(W).fill(' '));
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+  function putStr(s,col,row){for(let i=0;i<s.length;i++)put(s[i],col+i,row);}
+
+  // Draw axes
+  for(let c=0;c<W;c++) put('─',c,Math.floor(H/2));
+  for(let r=0;r<H;r++) put('│',Math.floor(W/2),r);
+  put('┼',Math.floor(W/2),Math.floor(H/2));
+
+  // Axis labels
+  putStr('x(t)',Math.floor(W/2)+1,0);
+  putStr('ẋ(t)',W-4,Math.floor(H/2)-1);
+
+  // Plot Poincaré section from temporal buffer
+  // x-axis: field value at center cell at tick t
+  // y-axis: derivative (difference from previous tick)
+  const centerIdx=Math.floor(FIELD_W/2)+Math.floor(FIELD_H/2)*FIELD_W;
+  let prevVal=null;
+  const chars=PALETTES[activePal];
+  for(let i=1;i<FIELD_BUFFER.length;i++){
+    const val=FIELD_BUFFER[i][centerIdx]||0;
+    if(prevVal!==null){
+      const derivative=val-prevVal;
+      // Map to grid coordinates
+      const gx=Math.floor((val+1)/2*(W-2))+1;
+      const gy=Math.floor((1-(derivative*8+1)/2)*(H-2))+1;
+      if(gx>=0&&gx<W&&gy>=0&&gy<H){
+        const age=i/FIELD_BUFFER.length;
+        const ch=chars[Math.min(chars.length-1,Math.floor(age*chars.length))];
+        put(ch,gx,gy);
+      }
+    }
+    prevVal=val;
+  }
+
+  const lines=[];
+  lines.push('ASCIII⁴·POINCARÉ  t='+pn(t,6)+'  PHASE PORTRAIT · center cell');
+  lines.push('x-axis: field value  ·  y-axis: rate of change  ·  time=char shade');
+  lines.push('Closed loop=periodic  ·  filled region=chaotic  ·  fixed point=stable');
+  lines.push('');
+  lines.push(G.map(r=>r.join('')).join('\n'));
+  lines.push('');
+  lines.push('λ='+LYAPUNOV.toFixed(5)+'  ·  buf='+FIELD_BUFFER.length+'  ·  attractor type: '+(LYAPUNOV>0.1?'STRANGE (chaotic)':LYAPUNOV<-0.1?'FIXED POINT':'LIMIT CYCLE'));
+
+  const energy=fieldEnergy().toFixed(5);
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:LYAPUNOV>0.1?'2.xxx':'1.000',div:LYAPUNOV.toFixed(4),energy,entropy:(parseFloat(energy)*Math.log(FIELD_BUFFER.length+1)).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:LYAPUNOV>0.1?'STRANGE ATTRACTOR':'NONE'});
+  updateDAFBars(dafStats());
+  return lines.join('\n');
+}
+
+/* DELTA FIELD — rate of change across the entire field at each tick */
+function renderDelta(t) {
+  const lines=[];
+  lines.push('ASCIII⁴·ΔFIELD  t='+pn(t,6)+'  TEMPORAL DERIVATIVE MAP');
+  lines.push('Character encodes ∂field/∂t — how fast each cell is changing');
+  lines.push('Dark=slow change (approaching fixed point)  Bright=fast change (transient)');
+  lines.push('');
+
+  if(FIELD_BUFFER.length<2){
+    lines.push('  Need at least 2 frames…');
+    updateDAFBars(dafStats());
+    return lines.join('\n');
+  }
+
+  const last=FIELD_BUFFER[FIELD_BUFFER.length-1];
+  const prev=FIELD_BUFFER[FIELD_BUFFER.length-2];
+  const W=FIELD_W,H=FIELD_H;
+  let totalDelta=0;
+
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const i=row*W+col;
+      const delta=Math.abs(last[i]-prev[i]);
+      totalDelta+=delta;
+      line+=charForVal(Math.min(1,delta*S.divScale*6));
+    }
+    lines.push(line);
+  }
+  const avgDelta=(totalDelta/(W*H)).toFixed(5);
+  lines.push('');
+  lines.push('avg |∂f/∂t|: '+avgDelta+'  ·  scale: '+S.divScale.toFixed(2)+'×  ·  step: '+S.tStep+' ticks');
+
+  // Show multi-lag deltas as summary
+  if(FIELD_BUFFER.length>=4){
+    const deltas=[1,2,4].map(lag=>{
+      if(FIELD_BUFFER.length<=lag) return 0;
+      let d=0;
+      const a=FIELD_BUFFER[FIELD_BUFFER.length-1];
+      const b=FIELD_BUFFER[FIELD_BUFFER.length-1-lag];
+      for(let i=0;i<a.length;i++) d+=Math.abs(a[i]-b[i]);
+      return d/a.length;
+    });
+    lines.push('');
+    lines.push('  Δ lag-1: '+bar(Math.min(1,deltas[0]*4),24)+'  '+deltas[0].toFixed(5));
+    lines.push('  Δ lag-2: '+bar(Math.min(1,deltas[1]*4),24)+'  '+deltas[1].toFixed(5));
+    lines.push('  Δ lag-4: '+bar(Math.min(1,deltas[2]*4),24)+'  '+deltas[2].toFixed(5));
+    const convergence=deltas[2]<deltas[0]?'CONVERGING':'DIVERGING';
+    lines.push('');
+    lines.push('  Trend: '+convergence+'  ·  λ='+LYAPUNOV.toFixed(4));
+  }
+
+  const energy=fieldEnergy().toFixed(5);
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:(1+parseFloat(avgDelta)*3).toFixed(4),div:avgDelta,energy,entropy:(parseFloat(avgDelta)*Math.log(W*H)).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:parseFloat(avgDelta)>0.1?'RAPID CHANGE':'NONE'});
+  updateDAFBars(dafStats());
+  return lines.join('\n');
+}
+
+// ── INHERITED RENDERERS (v1 base) ─────────────────────────────────────────
+function renderField(t){
+  const W=S.resolution,H=Math.max(6,Math.floor(W*0.42));
+  const lines=[],chars=PALETTES[activePal];
+  let totalE=0,cellCount=W*H;
+  lines.push('ASCIII⁴·FIELD  t='+pn(t,6)+'  [v1 base — λ='+LYAPUNOV.toFixed(4)+']');
+  lines.push('');
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      const x=(col/W)*6.2832,y=(row/H)*6.2832;
+      let v=wave(x,y,t*0.014)*S.density;
+      GRAPH.nodes.forEach(nd=>{const dx=(col/W)-nd.x,dy=(row/H)-nd.y,d=Math.sqrt(dx*dx+dy*dy);if(d<0.15)v+=nd.E.value*(1-d/0.15)*0.4;});
+      v=Math.max(-1,Math.min(1,v));totalE+=Math.abs(v);
+      line+=charForField(v);
+    }
+    lines.push(line);
+  }
+  const energy=(totalE/cellCount).toFixed(5),daf=dafStats();
+  lines.push('','energy: '+energy+'  λ='+LYAPUNOV.toFixed(4)+'  buf='+FIELD_BUFFER.length);
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:'—',div:'—',energy,entropy:(Math.log(cellCount)*S.density).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:LYAPUNOV>S.phaseThresh?'CHAOS':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+function renderTopology(t){
+  GRAPH.nodes.forEach(n=>n.step(t,S.perturbation));
+  const nodes=GRAPH.nodes,W=64,H=24,G=Array.from({length:H},()=>Array(W).fill(' '));
+  function put(c,col,row){if(row>=0&&row<H&&col>=0&&col<W)G[row][col]=c;}
+  function putStr(s,col,row){for(let i=0;i<s.length;i++)put(s[i],col+i,row);}
+  GRAPH.edges.forEach(e=>{const a=nodes[e.a],b=nodes[e.b];const ax=Math.floor(a.x*(W-4)+1),ay=Math.floor(a.y*(H-3)+1),bx=Math.floor(b.x*(W-4)+1),by=Math.floor(b.y*(H-3)+1);const w=(Math.sin(t*0.014+e.phase)*0.4+0.6);const mx=Math.floor((ax+bx)/2);for(let c=Math.min(ax,mx);c<=Math.max(ax,mx);c++)put(w>0.7?'═':'─',c,ay);for(let r=Math.min(ay,by);r<=Math.max(ay,by);r++)put(w>0.6?'║':'│',mx,r);for(let c=Math.min(mx,bx);c<=Math.max(mx,bx);c++)put(w>0.7?'═':'─',c,by);});
+  nodes.forEach((nd,i)=>{const col=Math.floor(nd.x*(W-8)+1),row=Math.floor(nd.y*(H-3)+1);const sym=nd.C.daf===DAF.BRIT?'✕':nd.C.daf===DAF.TRAP?'◈':nd.C.daf===DAF.DRIFT?'◉':'◎';putStr(sym+'N'+String(i).padStart(2,'0'),col,row);// show temporal trace length
+  const trLen=nd.temporalTrace.length;putStr('λ:'+LYAPUNOV.toFixed(2)+'t:'+trLen,col,row+1);});
+  const daf=dafStats(),energy=(nodes.reduce((a,n)=>a+n.E.value,0)/nodes.length).toFixed(5);
+  let out='ASCIII⁴·TOPOLOGY  t='+pn(t,6)+'\n\n'+G.map(r=>r.join('')).join('\n');
+  out+='\n\ncirc:'+(daf.circ*100).toFixed(0)+'%  brit:'+(daf.brittle*100).toFixed(0)+'%  λ='+LYAPUNOV.toFixed(4);
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:'—',div:'—',energy,entropy:(Math.log(nodes.length+1)*S.density).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:daf.brittle>0.15?'BRITTLE':'NONE'});
+  updateDAFBars(daf);return out;
+}
+
+function renderCompress(t){
+  const W=S.resolution,H=Math.max(6,Math.floor(W*0.38)),cChars=[' ','·','░','▒','▓','█'];
+  // In v4: compression map informed by attractor variance
+  // High variance cells are harder to compress (more information)
+  const varField=computeVarianceField();
+  const lines=['ASCIII⁴·COMPRESS  t='+pn(t,6)+'  attractor-informed compression',''];
+  let totalR=0,cellCount=W*H;
+  for(let row=0;row<H;row++){
+    let line='';
+    for(let col=0;col<W;col++){
+      let base=1-Math.abs(wave((col/W)*6.28,(row/H)*6.28,t*0.014)*S.density);
+      // Attractor variance reduces compressibility
+      if(varField){const vi=Math.floor(row*FIELD_H/H)*FIELD_W+Math.floor(col*FIELD_W/W);const vv=varField[vi]||0;base=Math.max(0,base-vv*0.5);}
+      totalR+=base;line+=cChars[Math.min(cChars.length-1,Math.floor(base*cChars.length))];
+    }
+    lines.push(line);
+  }
+  const avg=(totalR/cellCount).toFixed(5),daf=dafStats();
+  lines.push('','avg compress: '+avg+'  ·  attractor variance reduces compressibility');
+  lines.push('chaotic regions (high λ) are information-dense and less compressible');
+  updateReadout({bufdepth:FIELD_BUFFER.length+'/'+S.bufDepth,lyap:LYAPUNOV.toFixed(5),pdim:'—',div:'—',energy:(1-parseFloat(avg)).toFixed(5),entropy:(parseFloat(avg)*Math.log(cellCount)).toFixed(4),rec:RECORDING?'ACTIVE':'OFF',alert:parseFloat(avg)<0.3?'LOW COMPRESS':'NONE'});
+  updateDAFBars(daf);return lines.join('\n');
+}
+
+// ── DISPATCH ─────────────────────────────────────────────────────────────
+function renderFrame(t) {
+  GRAPH.nodes.forEach(n=>n.step(t,S.perturbation));
+  pushBuffer(t);
+  let out='';
+  switch(S.mode){
+    case 'attractor':  out=renderAttractor(t);  break;
+    case 'trajectory': out=renderTrajectory(t); break;
+    case 'lyapunov':   out=renderLyapunov(t);   break;
+    case 'basin':      out=renderBasin(t);       break;
+    case 'poincare':   out=renderPoincare(t);    break;
+    case 'delta':      out=renderDelta(t);       break;
+    case 'field':      out=renderField(t);       break;
+    case 'topology':   out=renderTopology(t);    break;
+    case 'compress':   out=renderCompress(t);    break;
+  }
+  document.getElementById('asciii-output').textContent=out;
+  document.getElementById('r-tick').textContent=pn(t,6);
+  if(t%10===0){const daf=dafStats();S.stateLog.push({t,mode:S.mode,daf,lyap:LYAPUNOV});if(S.stateLog.length>120)S.stateLog.shift();}
+  updateTicker(t);
+}
+
+// ── UI UPDATERS ──────────────────────────────────────────────────────────
+function updateReadout({bufdepth,lyap,pdim,div,energy,entropy,rec,alert}){
+  document.getElementById('r-bufdepth').textContent=bufdepth;
+  document.getElementById('r-lyap').textContent=lyap;
+  document.getElementById('r-pdim').textContent=pdim;
+  document.getElementById('r-div').textContent=div;
+  document.getElementById('r-energy').textContent=energy;
+  document.getElementById('r-entropy').textContent=entropy;
+  document.getElementById('r-rec').textContent=rec;
+  const al=document.getElementById('r-alert');al.textContent=alert;al.className=alert==='NONE'?'rval':'rval ralert';
+}
+function updateDAFBars(daf){
+  document.getElementById('daf-circ').style.width=(daf.circ*100).toFixed(1)+'%';
+  document.getElementById('daf-drift').style.width=(daf.drift*100).toFixed(1)+'%';
+  document.getElementById('daf-trap').style.width=(daf.trap*100).toFixed(1)+'%';
+  document.getElementById('daf-brit').style.width=(daf.brittle*100).toFixed(1)+'%';
+  document.getElementById('dv-circ').textContent=(daf.circ*100).toFixed(0)+'%';
+  document.getElementById('dv-drift').textContent=(daf.drift*100).toFixed(0)+'%';
+  document.getElementById('dv-trap').textContent=(daf.trap*100).toFixed(0)+'%';
+  document.getElementById('dv-brit').textContent=(daf.brittle*100).toFixed(0)+'%';
+}
+
+function buildTicker(){
+  const defs=[
+    {id:'tk-tick',lbl:'TICK',val:'000000',sub:'sim clock'},
+    {id:'tk-lyap',lbl:'LYAPUNOV λ',val:'0.000',sub:'chaos exponent',red:true},
+    {id:'tk-phase',lbl:'PHASE STATE',val:'ORDER',sub:'system regime',red:true},
+    {id:'tk-buf',lbl:'BUFFER',val:'0/64',sub:'temporal depth',red:true},
+    {id:'tk-mode',lbl:'MODE',val:'ATTRACTOR',sub:'render mode'},
+    {id:'tk-energy',lbl:'ENERGY',val:'—',sub:'field avg'},
+    {id:'tk-nodes',lbl:'UFM NODES',val:'12',sub:'active figures'},
+    {id:'tk-pert',lbl:'PERTURBATION',val:'0.00',sub:'butterfly lever',red:true},
+    {id:'tk-daf',lbl:'DAF STATE',val:'CIRC',sub:'dominant'},
+    {id:'tk-autocorr',lbl:'AUTOCORR',val:'—',sub:'lag-1 memory',gold:true},
+    {id:'',lbl:'ASCIII',val:'v4',sub:'temporal attractor'},
+    {id:'',lbl:'λ>0',val:'CHAOS',sub:'positive exponent',red:true},
+    {id:'',lbl:'λ<0',val:'ORDER',sub:'negative exponent'},
+    {id:'',lbl:'LICENSE',val:'SAL-1.0',sub:'UUON Foundation'},
+  ];
+  const all=[...defs,...defs];
+  const track=document.getElementById('ticker-track');track.innerHTML='';
+  all.forEach(d=>{
+    const div=document.createElement('div');div.className='tk-item';if(d.id)div.id=d.id;
+    const sc=d.red?' red':d.gold?' gold':'';
+    div.innerHTML=`<div class="tk-lbl">${d.lbl}</div><div class="tk-val">${d.val}</div><div class="tk-sub${sc}">${d.sub}</div>`;
+    track.appendChild(div);const dv=document.createElement('div');dv.className='tk-div';track.appendChild(dv);
+  });
+}
+function setTk(id,val){document.querySelectorAll('#'+id+' .tk-val').forEach(el=>el.textContent=val);}
+function updateTicker(t){
+  const daf=dafStats();
+  const dom=daf.circ>=daf.drift&&daf.circ>=daf.trap&&daf.circ>=daf.brittle?'CIRC':daf.drift>=daf.trap&&daf.drift>=daf.brittle?'DRIFT':daf.trap>=daf.brittle?'TRAP':'BRIT';
+  const phaseState=LYAPUNOV>S.phaseThresh?'CHAOS':LYAPUNOV<-S.phaseThresh?'ORDER':'EDGE';
+  setTk('tk-tick',pn(t,6));
+  setTk('tk-lyap',LYAPUNOV.toFixed(4));
+  setTk('tk-phase',phaseState);
+  setTk('tk-buf',FIELD_BUFFER.length+'/'+S.bufDepth);
+  setTk('tk-mode',S.mode.toUpperCase());
+  setTk('tk-energy',document.getElementById('r-energy').textContent||'—');
+  setTk('tk-nodes',String(S.ufmCount));
+  setTk('tk-pert',S.perturbation.toFixed(2));
+  setTk('tk-daf',dom);
+  setTk('tk-autocorr',computeAutocorr(1).toFixed(3));
+}
+
+function buildPaletteUI(){
+  const grid=document.getElementById('palette-grid');grid.innerHTML='';
+  // Temporal palettes first
+  const tLabel=document.createElement('div');
+  tLabel.style.cssText='width:100%;font-family:Share Tech Mono,monospace;font-size:7px;letter-spacing:.15em;color:var(--red);text-transform:uppercase;margin-bottom:4px;';
+  tLabel.textContent='TEMPORAL (v4)';grid.appendChild(tLabel);
+  ['variance','diverge','attractor','orbit'].forEach(name=>{
+    const chars=PALETTES[name],chip=document.createElement('div');
+    chip.className='pchip'+(name===activePal?' active':'');
+    chip.style.borderColor='rgba(224,90,78,.3)';
+    chip.textContent=chars[Math.floor(chars.length*.6)]||'?';chip.title=name;
+    chip.innerHTML+='<span class="ptip">'+name.toUpperCase()+'</span>';
+    chip.onclick=()=>{activePal=name;document.querySelectorAll('.pchip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');};
+    grid.appendChild(chip);
+  });
+  const bLabel=document.createElement('div');
+  bLabel.style.cssText='width:100%;font-family:Share Tech Mono,monospace;font-size:7px;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin:8px 0 4px;';
+  bLabel.textContent='BASE (v1)';grid.appendChild(bLabel);
+  ['density','symbolic','topology','wave'].forEach(name=>{
+    const chars=PALETTES[name],chip=document.createElement('div');
+    chip.className='pchip'+(name===activePal?' active':'');
+    chip.textContent=chars[Math.floor(chars.length*.6)]||'?';chip.title=name;
+    chip.innerHTML+='<span class="ptip">'+name.toUpperCase()+'</span>';
+    chip.onclick=()=>{activePal=name;document.querySelectorAll('.pchip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');};
+    grid.appendChild(chip);
+  });
+}
+
+let grainCanvas,grainCtx;
+function buildGrain(){grainCanvas=document.getElementById('grain-canvas');grainCtx=grainCanvas.getContext('2d');resizeGrain();window.addEventListener('resize',resizeGrain);}
+function resizeGrain(){const m=document.querySelector('main');grainCanvas.width=m.clientWidth;grainCanvas.height=m.clientHeight;paintGrain();}
+function paintGrain(){const w=grainCanvas.width,h=grainCanvas.height,id=grainCtx.createImageData(w,h),d=id.data;for(let i=0;i<d.length;i+=4){const v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}grainCtx.putImageData(id,0,0);}
+
+function setParam(key,val){
+  S[key]=val;const el=document.getElementById('v-'+key);
+  if(!el)return;
+  if(key==='speed')el.textContent=val+'ms';
+  else if(['resolution','ufmCount','bufDepth','tStep'].includes(key))el.textContent=val;
+  else el.textContent=val.toFixed(2);
+  if(key==='bufDepth'){FIELD_BUFFER=[];PERTURBED_BUFFER=[];}
+}
+function setMode(m,btn){S.mode=m;document.querySelectorAll('.mbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('r-mode').textContent=m.toUpperCase();}
+function togglePause(){S.paused=!S.paused;const btn=document.getElementById('btn-pause');btn.textContent=S.paused?'▶ RESUME':'⏸ PAUSE';btn.classList.toggle('active',S.paused);document.getElementById('paused-badge').classList.toggle('show',S.paused);document.getElementById('ticker-track').classList.toggle('paused',S.paused);}
+function toggleRecord(){
+  RECORDING=!RECORDING;S.recording=RECORDING;
+  if(RECORDING)TRAJECTORY=[];
+  const btn=document.getElementById('btn-rec');
+  btn.textContent=RECORDING?'⏹ STOP':'⏺ RECORD';
+  btn.classList.toggle('active',RECORDING);
+  document.getElementById('r-rec').textContent=RECORDING?'ACTIVE':'OFF';
+}
+function resetSim(){S.tick=0;S.stateLog=[];FIELD_BUFFER=[];PERTURBED_BUFFER=[];LYAPUNOV=0;lyapSum=0;lyapCount=0;EVENTS=[];TRAJECTORY=[];RECORDING=false;lastPhaseState='ORDER';document.getElementById('event-log').innerHTML='';document.getElementById('lyap-bar').style.width='50%';document.getElementById('lyap-val').textContent='0.000';rebuildGraph();}
+function toggleDark(){S.dark=!S.dark;document.body.classList.toggle('dark',S.dark);setTimeout(paintGrain,50);}
+
+function exportTXT(){const text=document.getElementById('asciii-output').textContent;const blob=new Blob([text],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v4-frame-t'+pn(S.tick,6)+'.txt';a.click();URL.revokeObjectURL(url);}
+function exportTrajectory(){
+  if(!TRAJECTORY.length){alert('Start recording first (⏺ RECORD)');return;}
+  const header=['ASCIII v4 TRAJECTORY RECORD','Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0','─'.repeat(64),'t'.padEnd(8)+'avgE'.padEnd(12)+'lyapunov',''];
+  const rows=TRAJECTORY.map(r=>pn(r.t,6).padEnd(8)+r.avgE.toFixed(6).padEnd(12)+r.lyap.toFixed(6));
+  const blob=new Blob([header.join('\n')+rows.join('\n')],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v4-trajectory.txt';a.click();URL.revokeObjectURL(url);
+}
+function exportAttractorMap(){
+  if(FIELD_BUFFER.length<4){alert('Need more temporal data');return;}
+  const varField=computeVarianceField();
+  if(!varField)return;
+  const W=FIELD_W,H=FIELD_H;
+  const chars=PALETTES[activePal]||PALETTES.variance;
+  const lines=['ASCIII v4 ATTRACTOR MAP','Phillip Aguilar Ruiz III / UUON Foundation Inc. / SAL-1.0','λ='+LYAPUNOV.toFixed(6)+'  buf='+FIELD_BUFFER.length+'  t='+pn(S.tick,6),'─'.repeat(64),''];
+  let maxVar=0;for(let i=0;i<varField.length;i++)maxVar=Math.max(maxVar,varField[i]);maxVar=maxVar||1;
+  for(let row=0;row<H;row++){let l='';for(let col=0;col<W;col++){const v=varField[row*W+col]/maxVar;l+=chars[Math.min(chars.length-1,Math.floor(v*chars.length))];}lines.push(l);}
+  lines.push('','λ='+LYAPUNOV.toFixed(6)+'  ORDER→CHAOS spectrum');
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='asciii-v4-attractor-t'+pn(S.tick,6)+'.txt';a.click();URL.revokeObjectURL(url);
+}
+
+function loop(ts){if(!S.paused&&ts-S.lastFrame>=S.speed){S.lastFrame=ts;S.tick++;renderFrame(S.tick);}requestAnimationFrame(loop);}
+
+buildPaletteUI();buildTicker();buildGrain();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
